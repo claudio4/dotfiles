@@ -14,7 +14,10 @@
       tags:
         - workstation
         - go
-
+    - role: rust
+      tags:
+        - workstation
+        - rust
     - role: neovim
       tags:
         - workstation

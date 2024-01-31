@@ -1,0 +1,20 @@
+- name: Check if rustup binary exists
+  stat:
+    path: "{{ home }}/.cargo/bin/rustup"
+  register: rustup_binary
+- block:
+    - name: Download installer script
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup.sh
+        mode: 0755
+        force: true
+    - name: Install Rust
+      shell: /tmp/rustup.sh -y --no-modify-path
+    - name: Add Rust to PATH
+      lineinfile:
+        dest: "{{ home }}/.profile"
+        line: 'export PATH="$PATH:$HOME/.cargo/bin"'
+        state: present
+        create: yes
+  when: not rustup_binary.stat.exists
