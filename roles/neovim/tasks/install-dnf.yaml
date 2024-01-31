@@ -1,0 +1,11 @@
+- name: Install neovim and dependencies
+  become: true
+  dnf:
+    name:
+      - neovim
+      - fzf
+      - make
+      - automake
+      - gcc
+      - gcc-c++
+    state: present

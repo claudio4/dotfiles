@@ -10,6 +10,10 @@
         - server
         - workstation
         - zsh
+    - role: neovim
+      tags:
+        - workstation
+        - neovim
     - role: vim
       tags:
         - server

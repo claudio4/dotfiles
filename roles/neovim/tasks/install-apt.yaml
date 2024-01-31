@@ -1,0 +1,7 @@
+- name: Install neovim and dependencies
+  become: true
+  apt:
+    name:
+      - neovim
+      - build-essential
+      - fzf

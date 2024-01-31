@@ -1,0 +1,10 @@
+- name: Install neovim and dependencies
+  become: true
+  pacman:
+    name:
+      - neovim
+      - fzf
+      - make
+      - automake
+      - gcc
+    state: present
