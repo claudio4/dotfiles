@@ -1,0 +1,15 @@
+- name: create dev direcotry
+  file:
+    path: "{{ home }}/dev/claudio4"
+    state: directory
+    mode: 0755
+- name: Create scratchpad directory
+  file:
+    path: "{{ home }}/scratchpad"
+    state: directory
+    mode: 0755
+- name: Create .local/bin directory
+  file:
+    path: "{{ home }}/.local/bin"
+    state: directory
+    mode: 0755

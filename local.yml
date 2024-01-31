@@ -30,6 +30,9 @@
       tags:
         - workstation
         - neovim
+    - role: useful-dirs
+      tags:
+        - workstation
     - role: vim
       tags:
         - server
