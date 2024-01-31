@@ -1,0 +1,14 @@
+- name: Set-up enviorment
+  hosts: localhost
+  roles:
+    - role: basic-tools
+      tags:
+        - basic
+        - server
+        - workstation
+    - role: zsh
+      tags:
+        - basic
+        - server
+        - workstation
+        - zsh

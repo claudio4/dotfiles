@@ -1,0 +1,7 @@
+- name: Install curl, git and htop
+  package:
+    name:
+      - curl
+      - git
+      - htop
+    state: present

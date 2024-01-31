@@ -1,0 +1,69 @@
+- name: install ZSH
+  become: true
+  package:
+    name: zsh
+    state: present
+- name: Create data directory
+  file:
+    path: "{{ data_dir }}"
+    state: directory
+    mode: 0755
+- name: install oh-my-zsh
+  git:
+    repo: https://github.com/ohmyzsh/ohmyzsh.git
+    dest: "{{ ohmyzsh_dir }}"
+    clone: true
+    depth: 1
+- name: install powerlevel10k
+  git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "{{ ohmyzsh_dir }}/custom/themes/powerlevel10k"
+    clone: true
+    depth: 1
+- name: install zsh-autosuggestions
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: "{{ ohmyzsh_dir }}/custom/plugins/zsh-autosuggestions"
+    clone: true
+    depth: 1
+- name: Copy .zshrc
+  template:
+    src: zshrc.j2
+    dest: "{{ lookup('env', 'HOME') }}/.zshrc"
+    mode: 0644
+- name: "Create {{ config_dir }}/shell"
+  file:
+    path: "{{ config_dir }}/shell"
+    state: directory
+    mode: 0755
+- name: Create local-shell.sh
+  file:
+    path: "{{ config_dir }}/shell/local-shell.sh"
+    state: touch
+    modification_time: preserve
+    mode: 0644
+- name: Copy p10k file
+  copy:
+    src: "p10k.zsh"
+    dest: "{{ config_dir }}/shell/p10k.zsh"
+    mode: 0644
+- name: Create state directory
+  file:
+    path: "{{ state_dir }}/zsh"
+    state: directory
+    mode: 0755
+- name: Create cache directory
+  file:
+    path: "{{ cache_dir }}/zsh"
+    state: directory
+    mode: 0755
+- name: Move .zsh_history
+  command: mv "{{ lookup('env', 'HOME') }}/.zsh_history" "{{ state_dir }}/zsh/.zsh_history"
+  args:
+    creates: "{{ state_dir }}/zsh/.zsh_history"
+    removes: "{{ lookup('env', 'HOME') }}/.zsh_history"
+
+- name: Change default shell to zsh
+  user:
+    name: "{{ lookup('env', 'USER') }}"
+    shell: /bin/zsh

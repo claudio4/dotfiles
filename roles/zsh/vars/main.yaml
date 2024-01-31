@@ -1,0 +1,1 @@
+ohmyzsh_dir: "{{ data_dir }}/oh-my-zsh"

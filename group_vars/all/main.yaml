@@ -1,0 +1,7 @@
+# XDG-Dirs
+cache_dir: "{{ lookup('env', 'XDG_CACHE_HOME') | ternary(lookup('env', 'XDG_CACHE_HOME'), lookup('env', 'HOME') + '/.cache') }}"
+config_dir: "{{ lookup('env', 'XDG_CONFIG_HOME') | ternary(lookup('env', 'XDG_CONFIG_HOME'), lookup('env', 'HOME') + '/.config') }}"
+data_dir: "{{ lookup('env', 'XDG_DATA_HOME') | ternary(lookup('env', 'XDG_DATA_HOME'), lookup('env', 'HOME') + '/.local/share') }}"
+state_dir: "{{ lookup('env', 'XDG_STATE_HOME') | ternary(lookup('env', 'XDG_STATE_HOME'), lookup('env', 'HOME') + '/.local/state') }}"
+
+is_wsl: "{{ ansible_virtualization_type == 'wsl' }}"
