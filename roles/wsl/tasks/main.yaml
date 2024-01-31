@@ -1,0 +1,19 @@
+- name: Create .local/bin directory
+  file:
+    path: "{{ home }}/.local/bin"
+    state: directory
+    mode: 0755
+- name: Download WSL 2 pagent binary
+  get_url:
+    url: "https://github.com/BlackReloaded/wsl2-ssh-pageant/releases/latest/download/wsl2-ssh-pageant.exe"
+    dest: "{{ home }}/.local/bin/wsl2-ssh-pageant.exe"
+    mode: 0755
+- name: Create wsl profile
+  copy:
+    src: wsl-profile.sh
+    dest: "{{ config_dir }}/shell/wsl-profile.sh"
+    mode: 0644
+- name: Install socat package
+  package:
+    name: socat
+    state: present

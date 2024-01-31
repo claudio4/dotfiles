@@ -12,3 +12,9 @@
         - server
         - workstation
         - zsh
+    - role: wsl
+      tags:
+        - basic
+        - workstation
+        - wsl
+      when: is_wsl
