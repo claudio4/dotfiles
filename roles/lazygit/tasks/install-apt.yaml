@@ -1,0 +1,41 @@
+- name: Check if lazygit is installed
+  stat:
+    path: "{{ home }}/.local/bin/lazygit"
+  register: lazygit_installed
+- block:
+  - name: Get latest release number
+    uri:
+      url: "https://api.github.com/repos/jesseduffield/lazygit/releases/latest"
+      return_content: yes
+    register: latest_release
+  - set_fact:
+      lazygit_latest_release: "{{ latest_release.json.tag_name }}"
+  # - name: Download lazygit
+  #   get_url:
+  #     url: ""
+  #     dest: "/tmp/lazygit.tar.gz"
+  #     mode: '0644'
+  - name: Create tmp dir
+    file:
+      path: "/tmp/lazygit"
+      state: directory
+  - name: Extract lazygit
+    unarchive:
+      src: "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_{{lazygit_latest_release[1:]}}_Linux_{{ansible_architecture}}.tar.gz"
+      dest: "/tmp/lazygit"
+      remote_src: true
+  - name: Create lazygit install dir
+    file:
+      path: "{{ home }}/.local/bin"
+      state: directory
+  - name: Install lazygit
+    copy:
+      src: "/tmp/lazygit/lazygit"
+      dest: "{{ home }}/.local/bin/lazygit"
+      mode: '0755'
+      remote_src: true
+  - name: Remove lazygit install dir
+    file:
+      path: "/tmp/lazygit"
+      state: absent
+  when: not lazygit_installed.stat.exists

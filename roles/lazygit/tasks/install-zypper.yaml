@@ -1,0 +1,5 @@
+- name: Install lazygit
+  become: true
+  zypper:
+    name: 'lazygit'
+    state: present

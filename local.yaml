@@ -14,6 +14,10 @@
       tags:
         - workstation
         - go
+    - role: lazygit
+      tags:
+        - workstation
+        - lazygit
     - role: node
       tags:
         - workstation
