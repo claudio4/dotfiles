@@ -11,10 +11,14 @@
         force: true
     - name: Install Rust
       shell: /tmp/rustup.sh -y --no-modify-path
-    - name: Add Rust to PATH
-      lineinfile:
-        dest: "{{ home }}/.profile"
-        line: 'export PATH="$PATH:$HOME/.cargo/bin"'
-        state: present
-        create: yes
+    - name: Remove installer script
+      file:
+        path: /tmp/rustup.sh
+        state: absent
   when: not rustup_binary.stat.exists
+- name: Add Rust to PATH
+  lineinfile:
+    dest: "{{ home }}/.profile"
+    line: 'export PATH="$PATH:$HOME/.cargo/bin"'
+    state: present
+    create: yes
