@@ -1,0 +1,22 @@
+- include_vars: "{{ ansible_pkg_mgr }}.yaml"
+- name: Install Go
+  become: true
+  package:
+    name: "{{ go_package }}"
+    state: present
+- name: Create gopath directory
+  file:
+    path: "{{ go_path }}/bin"
+    state: directory
+- name: Configure gopath in .profile
+  lineinfile:
+    path: "{{ home }}/.profile"
+    line: "export GOPATH={{ go_path }}"
+    state: present
+    create: yes
+- name: Add gopath binaries to PATH
+  lineinfile:
+    path: "{{ home }}/.profile"
+    line: "export PATH=$PATH:{{ go_path }}/bin"
+    state: present
+    create: yes
