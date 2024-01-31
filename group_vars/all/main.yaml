@@ -5,5 +5,6 @@ data_dir: "{{ lookup('env', 'XDG_DATA_HOME') | ternary(lookup('env', 'XDG_DATA_H
 state_dir: "{{ lookup('env', 'XDG_STATE_HOME') | ternary(lookup('env', 'XDG_STATE_HOME'), lookup('env', 'HOME') + '/.local/state') }}"
 
 home: "{{ lookup('env', 'HOME') }}"
+user: "{{ lookup('env', 'USER') }}"
 
 is_wsl: "{{ ansible_virtualization_type == 'wsl' }}"

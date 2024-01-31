@@ -64,6 +64,7 @@
     removes: "{{ lookup('env', 'HOME') }}/.zsh_history"
 
 - name: Change default shell to zsh
+  become: true
   user:
-    name: "{{ lookup('env', 'USER') }}"
+    name: "{{ user }}"
     shell: /bin/zsh

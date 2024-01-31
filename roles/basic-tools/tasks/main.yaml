@@ -1,4 +1,5 @@
 - name: Install curl, git and htop
+  become: true
   package:
     name:
       - curl
