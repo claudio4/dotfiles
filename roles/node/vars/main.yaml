@@ -1,0 +1,1 @@
+fnm_dir: "{{ data_dir }}/fnm"

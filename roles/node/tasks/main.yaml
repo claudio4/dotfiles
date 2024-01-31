@@ -1,0 +1,53 @@
+- name: Install fnm dependencies
+  become: true
+  package:
+    name:
+      - curl
+      - unzip
+    state: present
+- name: Check if fnm binary exists
+  stat:
+    path: "{{ fnm_dir }}/fnm"
+  register: fnm_binary
+- block:
+  - name: Download fnm install script
+    get_url:
+      url: https://fnm.vercel.app/install
+      dest: /tmp/fnm_install.sh
+      mode: 0755
+  - name: Install fnm
+    shell: "/tmp/fnm_install.sh --skip-shell --install-dir {{ fnm_dir }}"
+  - name: Remove installer script
+    file:
+      path: /tmp/fnm_install.sh
+      state: absent
+  when: not fnm_binary.stat.exists
+- name: Create .local/bin
+  file:
+    path: "{{ home }}/.local/bin"
+    state: directory
+    mode: 0755
+- name: Symlink fnm binary
+  file:
+    src: "{{ fnm_dir }}/fnm"
+    dest: "{{ home }}/.local/bin/fnm"
+    state: link
+- name: Add fnm env to ZSH
+  lineinfile:
+    dest: "{{ home }}/.zshrc"
+    line: 'eval "$(fnm env --shell zsh)"'
+    state: present
+    create: yes
+- name: Add fnm env to Bash
+  lineinfile:
+    dest: "{{ home }}/.bashrc"
+    line: 'eval "$(fnm env --shell bash)"'
+    state: present
+    create: yes
+- name: Install Node.js
+  shell: "{{ home }}/.local/bin/fnm install --latest"
+  args:
+    executable: /bin/zsh
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ home }}/.local/bin"
+  when: not fnm_binary.stat.exists
