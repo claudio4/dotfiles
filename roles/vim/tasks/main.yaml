@@ -1,0 +1,47 @@
+- name: Install vim
+  package:
+    name: vim
+    state: present
+- name: Create .vimrc
+  copy:
+    src: vimrc
+    dest: "{{ home }}/.vimrc"
+    mode: 0644
+- name: Create .vim/autoload directory
+  file:
+    path: "{{ home }}/.vim/autoload"
+    state: directory
+    mode: 0755
+- name: Install vim color theme (autload)
+  get_url:
+    url: "https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim"
+    dest: "{{ home }}/.vim/autoload/onedark.vim"
+    mode: 0644
+- name: Create .vim/colors directory
+  file:
+    path: "{{ home }}/.vim/colors"
+    state: directory
+    mode: 0755
+- name: Install vim color theme (colors)
+  get_url:
+    url: "https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim"
+    dest: "{{ home }}/.vim/colors/onedark.vim"
+    mode: 0644
+
+- name: Create .vim/pack/plugins directory
+  file:
+    path: "{{ home }}/.vim/pack/plugins"
+    state: directory
+    mode: 0755
+- name: Install vim-editorconfig
+  git:
+    repo: https://github.com/editorconfig/editorconfig-vim.git
+    dest: "{{ home }}/.vim/pack/plugins/start/editorconfig-vim"
+    clone: true
+    depth: 1
+- name: Install vim-polyglot
+  git:
+    repo: https://github.com/sheerun/vim-polyglot.git
+    dest: "{{ home }}/.vim/pack/plugins/start/vim-polyglot"
+    clone: true
+    depth: 1

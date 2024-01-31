@@ -3,18 +3,20 @@
   roles:
     - role: basic-tools
       tags:
-        - basic
         - server
         - workstation
     - role: zsh
       tags:
-        - basic
         - server
         - workstation
         - zsh
+    - role: vim
+      tags:
+        - server
+        - workstation
+        - vim
     - role: wsl
       tags:
-        - basic
         - workstation
         - wsl
       when: is_wsl
