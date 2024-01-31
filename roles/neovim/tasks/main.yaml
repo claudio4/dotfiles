@@ -5,4 +5,9 @@
     dest: "{{ config_dir }}/nvim"
     clone: true
     depth: 1
+  # This is a hack to avoid the task failing when there are local modifications
+  register: repo_clone
+  failed_when:
+    - repo_clone.failed
+    - not 'Local modifications exist' in repo_clone.msg
 
