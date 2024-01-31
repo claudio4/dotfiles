@@ -1,15 +1,19 @@
+export XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+export XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+export XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+if [[ -r "$XDG_CACHE_HOME/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "$XDG_CACHE_HOME/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Oh my ZSH installation path
-export ZSH="${XDG_DATA_HOME:-$HOME/.local/share}/oh-my-zsh"
 
-# Compinit cache to XDG directory.
-compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-$ZSH_VERSION"
+
+# Oh my ZSH installation path
+export ZSH="$XDG_DATA_HOME/oh-my-zsh"
 
 # Set theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
@@ -31,21 +35,24 @@ export DO_NOT_TRACK=1
 # In WSL .profile is not sourced by default, so we do this.
 source "$HOME/.profile"
 # Load WSL specific config
-source "$HOME/.wsl-profile"
+source "$XDG_CONFIG_HOME/shell/wsl-profile.sh"
 {% endif %}
 
 # This file is not tracked nor overwritten by the dot files manager, so it can be edited freely for local settings.
-source "${XDG_CONFIG_HOME:-$HOME/.config}/shell/local-shell.sh"
+source "$XDG_CONFIG_HOME/shell/local-shell.sh"
 
 # Load Oh my ZSH
 source $ZSH/oh-my-zsh.sh
 
+# Compinit cache to XDG directory.
+compinit -d "$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
+
 # Load P10k
-P10K_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/shell/p10k.zsh"
+P10K_FILE="$XDG_CONFIG_HOME/shell/p10k.zsh"
 [[ -f $P10K_FILE ]] && source $P10K_FILE
 
 # Move historu to XDG directory
-export HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
 # Aliases
 alias svim="sudo -E vim"
