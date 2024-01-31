@@ -62,4 +62,4 @@ if [[ -n $TAGS ]]; then
 fi
 
 # Run Ansible playbook using ansible-pull
-ansible-pull -U https://github.com/claudio4/dotfiles.git local.yaml $ask_pass $tags
+ansible-pull -U https://github.com/claudio4/dotfiles.git $ask_pass $tags
