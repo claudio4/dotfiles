@@ -37,7 +37,8 @@ if ! command -v git &> /dev/null; then
    install_package git
 fi
 
-if [[ $1 != "-y" ]]; then
+
+if [ -z $PS1 ]; then
     echo "About to run ansible-pull -U https://github.com/claudio4/dotfiles.git --ask-become-pass $@"
     read -p "Continue? (y/n) " -n 1 -r
     echo    # move to a new line
@@ -47,10 +48,18 @@ if [[ $1 != "-y" ]]; then
     fi
     ask_pass="--ask-become-pass"
 else
-    shift
     echo "Running ansible-pull -U https://github.com/claudio4/dotfiles.git \"$@\""
     ask_pass=""
 fi
 
+if [[ -n $TAGS ]]; then
+    # Split the TAGS variable by spaces and prepend each tag with -t
+    IFS=' ' read -ra ADDR <<< "$TAGS"
+    tags=""
+    for i in "${ADDR[@]}"; do
+        tags+=" -t $i"
+    done
+fi
+
 # Run Ansible playbook using ansible-pull
-ansible-pull -U https://github.com/claudio4/dotfiles.git $ask_pass "$@"
+ansible-pull -U https://github.com/claudio4/dotfiles.git local.yaml $ask_pass $tags

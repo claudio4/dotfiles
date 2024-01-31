@@ -10,11 +10,8 @@ ansible-pull -U https://github.com/claudio4/dotfiles.git --ask-become-pass
 If you are in a completely bare system, you can use the `bootstrap.sh` script.
 ```
 # You can also use https://cl4.es/env.sh for less typing, it redirects to the same file.
-wget -O- https://raw.githubusercontent.com/claudio4/dotfiles/master/bootstrap.sh | bash
+bash -c 'eval $(wget -O- https://raw.githubusercontent.com/claudio4/dotfiles/master/bootstrap.sh)'
 
-# You can also send arugments, for example tags
-wget -O- https://cl4.es/env.sh | bash -- -t server
-
-# Also, if you are not in an interactive enviroment
-wget -O- https://cl4.es/env.sh | bash -- -y
+# You can also set tags
+TAGS="server lazygit" bash -c 'eval "$(wget -O- https://cl4.es/env.sh)'
 ```
