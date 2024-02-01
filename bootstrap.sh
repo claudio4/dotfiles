@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Check if curl or wget is available
 if command -v curl >/dev/null 2>&1; then
     DOWNLOADER="curl -fssL"
@@ -12,7 +14,14 @@ fi
 if [ -t 0 ] && [ -z "$TAGS" ]; then
     echo "Enter tags (separated by spaces) (ej. workstation server):"
     read -r TAGS
-    export TAGS="$TAGS"
+    TAGS_SET_BY_SCRIPT=1
 fi
 
-bash -c "$($DOWNLOADER https://raw.githubusercontent.com/claudio4/dotfiles/master/install.sh)"
+TAGS="$TAGS" bash -c "$($DOWNLOADER https://raw.githubusercontent.com/claudio4/dotfiles/master/install.sh)"
+
+# Unset the tags variable if it was set by the script.
+# As this is script is meant to be used in eval, we have to clean after ourselves.
+if [ -n "$TAGS_SET_BY_SCRIPT" ]; then
+    unset TAGS
+    unset TAGS_SET_BY_SCRIPT
+fi
