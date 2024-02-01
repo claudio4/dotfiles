@@ -26,7 +26,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Standard plugins can be found in $ZSH/plugins/
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
-plugins=(git zsh-autosuggestions)
+plugins=(git zsh-autosuggestions zoxide)
 
 # User settings
 export DO_NOT_TRACK=1
@@ -51,7 +51,7 @@ compinit -d "$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
 P10K_FILE="$XDG_CONFIG_HOME/shell/p10k.zsh"
 [[ -f $P10K_FILE ]] && source $P10K_FILE
 
-# Move historu to XDG directory
+# Move history to XDG directory
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
 # Aliases

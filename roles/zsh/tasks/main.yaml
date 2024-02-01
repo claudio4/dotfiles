@@ -62,7 +62,11 @@
   args:
     creates: "{{ state_dir }}/zsh/.zsh_history"
     removes: "{{ lookup('env', 'HOME') }}/.zsh_history"
-
+- name: Install zoxide
+  become: true
+  package:
+    name: zoxide
+    state: present
 - name: Change default shell to zsh
   become: true
   user:
