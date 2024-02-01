@@ -1,0 +1,43 @@
+- name: Install tmux
+  become: true
+  package:
+    name: tmux
+    state: present
+- name: Create {{ config_dir }}/tmux
+  file:
+    path: "{{ config_dir }}/tmux"
+    state: directory
+    mode: 0755
+- name: Copy tmux.conf
+  template:
+    src: tmux.conf.j2
+    dest: "{{ config_dir }}/tmux/tmux.conf"
+    mode: 0644
+- name: Copy extra config
+  copy:
+    src: configs
+    dest: "{{ config_dir }}/tmux"
+    mode: 0644
+- name: Create plugins directory
+  file:
+    path: "{{ data_dir }}/tmux/plugins"
+    state: directory
+    mode: 0755
+- name: Install TPM
+  git:
+    repo: "https://github.com/tmux-plugins/tpm.git"
+    dest: "{{ data_dir }}/tmux/plugins/tpm"
+    clone: true
+    depth: 1
+- name: Create .local/bin
+  file:
+    path: "{{ home }}/.local/bin"
+    state: directory
+    mode: 0755
+- name: Alias tmux-session-wizard script to t
+  file:
+    src: "{{ data_dir }}/tmux/plugins/tmux-session-wizard/session-wizard.sh"
+    dest: "{{ home }}/.local/bin/t"
+    state: link
+    force: true
+    follow: false

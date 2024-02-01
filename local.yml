@@ -30,6 +30,11 @@
       tags:
         - workstation
         - neovim
+    - role: tmux
+      tags:
+        - server
+        - workstation
+        - tmux
     - role: useful-dirs
       tags:
         - workstation

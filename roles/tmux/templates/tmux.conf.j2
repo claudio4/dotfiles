@@ -1,0 +1,56 @@
+# vars
+tmux_dir="{{ config_dir }}/tmux"
+config_dir="$tmux_dir/configs"
+tmux_plugins_dir="{{ data_dir }}/tmux/plugins"
+
+# Load keybindings
+source "$config_dir/keybindings.conf"
+
+# Enable mouse control (clickable windows, panes, resizable panes)
+set -g mouse on
+
+# start windows numbering at 1
+set -g base-index 1
+
+# make pane numbering consistent with windows
+setw -g pane-base-index 1
+
+# rename window to reflect current program
+setw -g automatic-rename on
+
+# set terminal title
+set -g set-titles on
+
+# Fix colors
+set -g default-terminal "${TERM}"
+set-option -sa terminal-overrides ",xterm*:Tc"
+
+# This is need to be something other than 0, otherwise terminal emulators in
+# windows will print 0;10;1c. This happens with WSL and ssh sessions.
+set -sg escape-time 1
+
+###
+# plugins
+###
+
+# Use corrent plugin folder
+set-environment -g TMUX_PLUGIN_MANAGER_PATH "$tmux_plugins_dir"
+
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-sensible'
+
+# Set theme
+set -g @plugin 'dracula/tmux'
+set -g status-position top
+set -g @dracula-show-left-icon session
+set -g @dracula-plugins " "
+
+# Yank with clipboard integration
+set -g @plugin 'tmux-plugins/tmux-yank'
+
+# Quickly change tmux sessions
+set -g @plugin '27medkamal/tmux-session-wizard'
+set -g @session-wizard 't'
+
+# Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
+run "$tmux_plugins_dir/tpm/tpm"
