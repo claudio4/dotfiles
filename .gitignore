@@ -1,3 +1,7 @@
 # IDE files
 .idea
 .vscode
+
+# hosts file
+hosts.ini
+hosts.txt

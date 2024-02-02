@@ -1,5 +1,5 @@
 - name: Set-up enviorment
-  hosts: localhost
+  hosts: "{{ ansible_limit | default('localhost') }}"
   roles:
     - role: basic-tools
       tags:
