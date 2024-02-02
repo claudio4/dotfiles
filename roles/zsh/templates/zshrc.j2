@@ -10,8 +10,6 @@ if [[ -r "$XDG_CACHE_HOME/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "$XDG_CACHE_HOME/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-
-
 # Oh my ZSH installation path
 export ZSH="$XDG_DATA_HOME/oh-my-zsh"
 
@@ -20,6 +18,11 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Disable auto-update
 # zstyle ':omz:update' mode disabled
+
+# Compinit cache to XDG directory.
+export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
+# Move history to XDG directory
+export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
 # Uncomment the following line if pasting URLs and other text is messed up.
 # DISABLE_MAGIC_FUNCTIONS="true"
@@ -44,15 +47,9 @@ source "$XDG_CONFIG_HOME/shell/local-shell.sh"
 # Load Oh my ZSH
 source $ZSH/oh-my-zsh.sh
 
-# Compinit cache to XDG directory.
-compinit -d "$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
-
 # Load P10k
 P10K_FILE="$XDG_CONFIG_HOME/shell/p10k.zsh"
 [[ -f $P10K_FILE ]] && source $P10K_FILE
-
-# Move history to XDG directory
-export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
 # Aliases
 alias svim="sudo -E vim"
