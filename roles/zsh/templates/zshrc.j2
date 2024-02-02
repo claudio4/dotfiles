@@ -21,6 +21,11 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Compinit cache to XDG directory.
 export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
+
+# .cache directory can be removed at any time, make sure to recreate it if it
+# goes missing.
+[ -d "$XDG_CACHE_HOME/zsh" ] || mkdir -p "$XDG_CACHE_HOME/zsh"
+
 # Move history to XDG directory
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
@@ -41,7 +46,8 @@ source "$HOME/.profile"
 source "$XDG_CONFIG_HOME/shell/wsl-profile.sh"
 {% endif %}
 
-# This file is not tracked nor overwritten by the dot files manager, so it can be edited freely for local settings.
+# This file is not tracked nor overwritten by the dot files manager, so it can
+# be edited freely for local settings.
 source "$XDG_CONFIG_HOME/shell/local-shell.sh"
 
 # Load Oh my ZSH
