@@ -40,10 +40,9 @@ set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 
 # Set theme
-set -g @plugin 'dracula/tmux'
-set -g status-position top
-set -g @dracula-show-left-icon session
-set -g @dracula-plugins " "
+set -g @plugin 'niksingh710/minimal-tmux-status'
+#set -g status-position top # it is handle by theme option below
+set -g @minimal-tmux-status "top"
 
 # Yank with clipboard integration
 set -g @plugin 'tmux-plugins/tmux-yank'
