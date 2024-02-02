@@ -29,7 +29,7 @@
 - name: Copy .zshrc
   template:
     src: zshrc.j2
-    dest: "{{ lookup('env', 'HOME') }}/.zshrc"
+    dest: "{{ home }}/.zshrc"
     mode: 0644
 - name: "Create {{ config_dir }}/shell"
   file:
@@ -58,10 +58,10 @@
     state: directory
     mode: 0755
 - name: Move .zsh_history
-  command: mv "{{ lookup('env', 'HOME') }}/.zsh_history" "{{ state_dir }}/zsh/.zsh_history"
+  command: mv "{{ home }}/.zsh_history" "{{ state_dir }}/zsh/.zsh_history"
   args:
     creates: "{{ state_dir }}/zsh/.zsh_history"
-    removes: "{{ lookup('env', 'HOME') }}/.zsh_history"
+    removes: "{{ home }}/.zsh_history"
 - name: Install zoxide
   become: true
   package:
