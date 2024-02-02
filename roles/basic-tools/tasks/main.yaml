@@ -4,6 +4,5 @@
     name:
       - curl
       - fzf
-      - git
       - htop
     state: present

@@ -1,0 +1,15 @@
+- name: Install
+  become: true
+  package:
+    name: git
+    state: present
+- name: Create git config directory
+  file:
+    path: "{{ config_dir }}/git"
+    state: directory
+    mode: 0755
+- name: Add .gitconfig
+  copy:
+    src: gitconfig
+    dest: "{{ config_dir }}/git/config"
+    mode: 0644

@@ -5,6 +5,11 @@
       tags:
         - server
         - workstation
+    - role: git
+      tags:
+        - server
+        - workstation
+        - git
     - role: zsh
       tags:
         - server
