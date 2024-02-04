@@ -29,6 +29,9 @@ set-option -sa terminal-overrides ",xterm*:Tc"
 # windows will print 0;10;1c. This happens with WSL and ssh sessions.
 set -sg escape-time 1
 
+# Go to another active session if the current one dies.
+set-option -g detach-on-destroy off
+
 ###
 # plugins
 ###
