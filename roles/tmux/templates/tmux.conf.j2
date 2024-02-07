@@ -32,6 +32,12 @@ set -sg escape-time 1
 # Go to another active session if the current one dies.
 set-option -g detach-on-destroy off
 
+
+{% if is_wsl %}
+# Fix UTF-8 clipboard support in WSL
+set -g @custom_copy_command 'customclip(){ local STDIN=$(cat -); powershell.exe -command "Set-Clipboard" -Value "$STDIN"; }; customclip'
+{% endif %}
+
 ###
 # plugins
 ###
