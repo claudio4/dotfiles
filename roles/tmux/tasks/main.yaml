@@ -41,3 +41,8 @@
     state: link
     force: true
     follow: false
+- name: Install tb script
+  copy:
+    src: "tb.sh"
+    dest: "{{ home }}/.local/bin/tb"
+    mode: 0755
