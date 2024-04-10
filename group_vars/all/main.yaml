@@ -7,4 +7,4 @@ state_dir: "{{ ansible_env.XDG_STATE_HOME is defined | ternary(ansible_env.XDG_S
 home: "{{ ansible_env.HOME }}"
 user: "{{ ansible_env.USER }}"
 
-is_wsl: "{{ ansible_virtualization_type == 'wsl' }}"
+is_wsl: "{{ 'WSL2' in ansible_kernel }}"
