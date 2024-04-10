@@ -9,7 +9,7 @@
     dest: "{{ home }}/.local/bin/wsl2-ssh-pageant.exe"
     mode: 0755
 - name: Create wsl profile
-  copy:
+  template:
     src: wsl-profile.sh
     dest: "{{ config_dir }}/shell/wsl-profile.sh"
     mode: 0644
@@ -18,3 +18,27 @@
   package:
     name: socat
     state: present
+- name: Systemd SSH agent
+  when: uses_systemd
+  block:
+    - name: "Create user's systmed folder"
+      file:
+        path: "{{ config_dir }}/systemd/user"
+        state: directory
+        mode: 0755
+    - name: "Copy systemd WSL SSH service"
+      copy:
+        src: wsl-ssh-agent.service
+        dest: "{{ config_dir }}/systemd/user/wsl-ssh-agent.service"
+      register: copy_service_file
+    - name: Reload Systemd user daemon
+      when: copy_service_file.changed
+      systemd:
+        scope: user
+        daemon_reload: true
+    - name: "Enable WSL SSH service"
+      systemd:
+        scope: user
+        name: wsl-ssh-agent.service
+        state: started
+        enabled: true
