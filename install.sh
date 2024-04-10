@@ -11,13 +11,13 @@ install_package() {
 
 
     if command -v zypper &> /dev/null; then
-        sudo zypper install "$1" -y
+        sudo zypper install -y "$1"
     elif command -v apt &> /dev/null; then
-        sudo apt install "$1" -y
+        sudo apt install -y "$1"
     elif command -v dnf &> /dev/null; then
-        sudo dnf install "$1" -y
+        sudo dnf install -y "$1"
     elif command -v pacman &> /dev/null; then
-        sudo pacman -Sy "$1" --noconfirm
+        sudo pacman -Sy --noconfirm "$1" 
     else
         echo "Unable to install package. No supported package manager found."
         exit 1
