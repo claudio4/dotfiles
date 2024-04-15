@@ -13,6 +13,11 @@
     src: wsl-profile.sh
     dest: "{{ config_dir }}/shell/wsl-profile.sh"
     mode: 0644
+- name: Install Neovide WSL wrapper
+  copy:
+    src: neovide.sh
+    dest: "{{ home }}/.local/bin/neovide"
+    mode: 0755
 - name: Install socat package
   become: true
   package:
