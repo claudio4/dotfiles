@@ -62,10 +62,12 @@
   args:
     creates: "{{ state_dir }}/zsh/.zsh_history"
     removes: "{{ home }}/.zsh_history"
-- name: Install zoxide
+- name: Install bat & zoxide
   become: true
   package:
-    name: zoxide
+    name:
+      - bat
+      - zoxide
     state: present
 - name: Change default shell to zsh
   become: true
