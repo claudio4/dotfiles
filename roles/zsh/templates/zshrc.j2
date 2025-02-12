@@ -39,6 +39,12 @@ plugins=(git sudo zsh-autosuggestions zoxide)
 # User settings
 export DO_NOT_TRACK=1
 
+## zsh-autosuggestions settings
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+## enable ctrl+backspace
+bindkey '^H' backward-kill-word
+
 {% if is_wsl %}
 # In WSL .profile is not sourced by default, so we do this.
 source "$HOME/.profile"
