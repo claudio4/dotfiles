@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/socat UNIX-LISTEN:"${XDG_RUNTIME_DIR}/wsl2-ssh-pageant.sock,fork" EXEC:"${HOME}/.local/bin/wsl2-ssh-pageant.exe"
+ExecStart=/usr/bin/socat UNIX-LISTEN:"${XDG_RUNTIME_DIR}/wsl2-ssh-pageant.sock,fork" EXEC:"${HOME}/.local/bin/npiperelay.exe -ei -s //./pipe/openssh-ssh-agent"
 Restart=on-failure
 
 [Install]

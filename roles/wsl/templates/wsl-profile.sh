@@ -1,4 +1,4 @@
-export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/wsl2-ssh-pageant.sock"
+#export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/wsl2-ssh-pageant.sock"
 {% if not uses_systemd %}
 if ! ss -a | grep -q "$SSH_AUTH_SOCK"; then
     rm -f "$SSH_AUTH_SOCK"

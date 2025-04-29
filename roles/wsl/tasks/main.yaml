@@ -5,8 +5,8 @@
     mode: 0755
 - name: Download WSL 2 pagent binary
   get_url:
-    url: "https://github.com/BlackReloaded/wsl2-ssh-pageant/releases/latest/download/wsl2-ssh-pageant.exe"
-    dest: "{{ home }}/.local/bin/wsl2-ssh-pageant.exe"
+    url: "https://github.com/albertony/npiperelay/releases/download/latest/npiperelay_windows_amd64.exe"
+    dest: "{{ home }}/.local/bin/npiperelay.exe"
     mode: 0755
 - name: Create wsl profile
   template:
