@@ -69,6 +69,14 @@
       - bat
       - zoxide
     state: present
+# On Debian systems the bat binary is called batcat, we syslink to bat so it works like in other distros.
+- name: Syslink batcat to bat
+  become: true
+  file:
+    src: /usr/bin/batcat
+    dest: /usr/bin/bat
+    state: link
+  when: ansible_os_family == 'Debian'
 - name: Change default shell to zsh
   become: true
   user:
