@@ -1,0 +1,4 @@
+- name: Set-up server enviorment
+  hosts: "{{ ansible_limit | default('localhost') }}"
+  roles:
+    - role: basic-tools
