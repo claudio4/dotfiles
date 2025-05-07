@@ -1,8 +1,3 @@
-- name: install ZSH
-  become: true
-  package:
-    name: zsh
-    state: present
 - name: Create data directory
   file:
     path: "{{ data_dir }}"
@@ -26,11 +21,6 @@
     dest: "{{ ohmyzsh_dir }}/custom/plugins/zsh-autosuggestions"
     clone: true
     depth: 1
-- name: Copy .zshrc
-  template:
-    src: zshrc.j2
-    dest: "{{ home }}/.zshrc"
-    mode: 0644
 - name: "Create {{ config_dir }}/shell"
   file:
     path: "{{ config_dir }}/shell"
@@ -62,23 +52,24 @@
   args:
     creates: "{{ state_dir }}/zsh/.zsh_history"
     removes: "{{ home }}/.zsh_history"
-- name: Install bat & zoxide
-  become: true
-  package:
-    name:
-      - bat
-      - zoxide
-    state: present
-# On Debian systems the bat binary is called batcat, we syslink to bat so it works like in other distros.
-- name: Syslink batcat to bat
-  become: true
-  file:
-    src: /usr/bin/batcat
-    dest: /usr/bin/bat
-    state: link
-  when: ansible_os_family == 'Debian'
+- name: Check bat is installed
+  command: bash -c 'command -v bat'
+  register: check_if_bat_is_installed
+  changed_when: false
+  ignore_errors: true
+- name: Check if zoxide is installed
+  command: bash -c 'command -v zoxide'
+  register: check_if_zoxide_is_installed
+  changed_when: false
+  ignore_errors: true
+- name: Copy .zshrc
+  template:
+    src: zshrc.j2
+    dest: "{{ home }}/.zshrc"
+    mode: 0644
 - name: Change default shell to zsh
   become: true
   user:
     name: "{{ user }}"
     shell: /bin/zsh
+  when: set_default_shell

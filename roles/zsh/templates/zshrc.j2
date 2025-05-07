@@ -34,7 +34,14 @@ export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
 # Standard plugins can be found in $ZSH/plugins/
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
-plugins=(git sudo zsh-autosuggestions zoxide)
+plugins=(
+    git
+    sudo
+    zsh-autosuggestions
+{% if check_if_zoxide_is_installed.rc == 0 %}
+    zoxide
+{% endif %}
+)
 
 # User settings
 export DO_NOT_TRACK=1
@@ -66,7 +73,9 @@ P10K_FILE="$XDG_CONFIG_HOME/shell/p10k.zsh"
 # Aliases
 alias svim="sudo -E vim"
 alias pn="pnpm"
+{% if check_if_bat_is_installed.rc == 0 %}
 alias cat="bat --decorations never -P"
+{% endif %}
 
 # Functions
 {% if is_wsl %}

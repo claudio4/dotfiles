@@ -1,0 +1,18 @@
+- name: Install extra tooling using the distro's package manager
+  become: true
+  package:
+    name:
+      - bat
+      - fzf
+      - zoxide
+    state: present
+# On Debian system for compatibility reasons with an old package the binary name is batcat
+# I do not really care for this old package, so I do symbolic link to have the command available as
+# bat as usual.
+- name: Link batcat to bat
+  become: true
+  file:
+    src: /usr/bin/batcat
+    dest: /usr/bin/bat
+    state: link
+  when: ansible_os_family == 'Debian'

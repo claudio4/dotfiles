@@ -1,8 +1,10 @@
-- name: Install curl, git and htop
+- name: Install basic tooling using the distro's package manager
   become: true
   package:
     name:
       - curl
-      - fzf
-      - htop
+      - git
+      - tmux
+      - vim
+      - zsh
     state: present

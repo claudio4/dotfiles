@@ -1,8 +1,3 @@
-- name: Install tmux
-  become: true
-  package:
-    name: tmux
-    state: present
 - name: Create {{ config_dir }}/tmux
   file:
     path: "{{ config_dir }}/tmux"
