@@ -2,3 +2,7 @@
   hosts: "{{ ansible_limit | default('localhost') }}"
   roles:
     - role: basic-tools
+    - role: extra-tools
+    - role: zsh
+    - role: tmux
+    - role: vim
