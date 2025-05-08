@@ -1,0 +1,2 @@
+homebrew_path: "{{ home }}/.local/opt/homebrew"
+homebrew_use_become: false

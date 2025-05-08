@@ -1,0 +1,17 @@
+- name: Create homebrew directory
+  become: "{{ homebrew_use_become }}"
+  file:
+    path: "{{ homebrew_path }}"
+    state: directory
+    owner: "{{ ansible_facts.user_uid }}"
+    group: "{{ ansible_facts.user_gid  }}"
+    mode: 0755
+- name: Clone homebrew repository
+  git:
+    repo: "{{ homebrew_repo_url }}"
+    dest: "{{ homebrew_path }}"
+    depth: 1
+  register: download_homebrew
+- name: Finish homebrew install
+  command: "{{ homebrew_path }}/bin/brew update --force --quiet"
+  when: download_homebrew.changed
