@@ -1,0 +1,5 @@
+- name: Set-up workstation enviorment
+  hosts: "{{ ansible_limit | default('localhost') }}"
+  roles:
+    - role: basic-tools
+    - role: build-essentials
