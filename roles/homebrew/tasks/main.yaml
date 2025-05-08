@@ -1,0 +1,17 @@
+- name: "Create {{ config_dir }}/homebrew"
+  file:
+    path: "{{ config_dir }}/homebrew"
+    state: directory
+    mode: 0755
+- name: Copy brewfile
+  template:
+    src: Brewfile.j2
+    dest: "{{ config_dir }}/homebrew/Brewfile"
+    mode: 0644
+  register: copy_brew_file
+- name: Apply brewfile
+  when: copy_brew_file.changed
+  command:
+    cmd: "{{ homebrew_path }}/bin/brew bundle install --global --cleanup --quiet"
+  environment:
+    XDG_CONFIG_HOME: "{{ config_dir }}"

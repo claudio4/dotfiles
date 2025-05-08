@@ -1,0 +1,53 @@
+- name: Debian/Ubuntu | Install build essentials
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - procps
+      - curl
+      - file
+      - git
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+  become: true
+- name: RHEL Family | Install Development Tools group and other packages
+  ansible.builtin.package:
+    name:
+      - "@Development Tools"
+      - procps-ng
+      - curl
+      - file
+      - git
+    state: present
+  when: ansible_os_family == "RedHat"
+  become: true
+- name: OpenSUSE | Install devel_basis pattern
+  block:
+    - name: OpenSUSE | Install devel_basis pattern
+      ansible.builtin.zypper:
+        name: "devel_basis"
+        type: pattern
+        state: present
+    - name: OpenSUSE | Install additional packages
+      ansible.builtin.zypper:
+        name:
+          - procps
+          - curl
+          - file
+          - git-core
+        state: present
+  become: true
+  when: ansible_os_family == "Suse"
+- name: Arch Linux | Install base-devel
+  ansible.builtin.pacman:
+    name:
+      - base-devel
+      - procps-ng
+      - curl
+      - file
+      - git
+    state: present
+    update_cache: true
+  become: true
+  when: ansible_os_family == "Archlinux"

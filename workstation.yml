@@ -1,5 +1,14 @@
 - name: Set-up workstation enviorment
   hosts: "{{ ansible_limit | default('localhost') }}"
+  vars:
+    homebrew_path: /home/linuxbrew/.linuxbrew
   roles:
     - role: basic-tools
     - role: build-essentials
+    - role: install-homebrew
+      homebrew_use_become: true
+    - role: homebrew
+  tasks:
+    - name: Print user information
+      ansible.builtin.debug:
+        msg: "User: {{ ansible_facts.user_id }}, UID: {{ ansible_facts.user_uid }}, GID: {{ ansible_facts.user_gid }}"

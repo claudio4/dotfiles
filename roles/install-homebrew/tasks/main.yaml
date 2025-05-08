@@ -6,12 +6,15 @@
     owner: "{{ ansible_facts.user_uid }}"
     group: "{{ ansible_facts.user_gid  }}"
     mode: 0755
+  register: create_homebrew
 - name: Clone homebrew repository
   git:
     repo: "{{ homebrew_repo_url }}"
     dest: "{{ homebrew_path }}"
     depth: 1
+    clone: true
   register: download_homebrew
+  when: create_homebrew.changed
 - name: Finish homebrew install
   command: "{{ homebrew_path }}/bin/brew update --force --quiet"
   when: download_homebrew.changed

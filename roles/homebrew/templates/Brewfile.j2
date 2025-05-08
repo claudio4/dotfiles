@@ -1,0 +1,22 @@
+brew "bat"
+brew "fish"
+brew "fzf"
+brew "ripgrep"
+brew "zoxide"
+
+brew "jj"
+brew "lazygit"
+
+{% if golang %}
+brew "go"
+{% endif %}
+{% if rust %}
+brew "rustup"
+{% endif %}
+{% if node %}
+brew "node"
+{% endif %}
+{% if deno %}
+brew "deno"
+{% endif %}
+
