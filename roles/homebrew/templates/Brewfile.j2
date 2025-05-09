@@ -6,6 +6,9 @@ brew "zoxide"
 
 brew "jj"
 brew "lazygit"
+{% if neovim %}
+brew "neovim"
+{% endif %}
 
 {% if golang %}
 brew "go"

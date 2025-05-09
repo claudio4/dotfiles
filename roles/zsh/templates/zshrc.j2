@@ -29,6 +29,17 @@ export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
 # Move history to XDG directory
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
+{% if check_if_homebrew_is_installed.exists %}
+# Add Homebrew support
+export HOMEBREW_PREFIX="{{ homebrew_path }}";
+export HOMEBREW_CELLAR="{{ homebrew_path }}/Cellar";
+export HOMEBREW_REPOSITORY="{{ homebrew_path }}";
+fpath[1,0]="{{ homebrew_path }}/share/zsh/site-functions";
+export PATH="{{ homebrew_path }}/bin:{{ homebrew_path }}/sbin${PATH+:$PATH}";
+[ -z "${MANPATH-}" ] || export MANPATH=":${MANPATH#:}";
+export INFOPATH="{{ homebrew_path }}/share/info:${INFOPATH:-}";
+{% endif %}
+
 # Uncomment the following line if pasting URLs and other text is messed up.
 # DISABLE_MAGIC_FUNCTIONS="true"
 

@@ -1,4 +1,5 @@
-golang: true
-rust: true
-node: true
 deno: true
+golang: true
+neovim: true
+node: true
+rust: true
