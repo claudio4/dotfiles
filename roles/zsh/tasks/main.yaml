@@ -52,22 +52,9 @@
   args:
     creates: "{{ state_dir }}/zsh/.zsh_history"
     removes: "{{ home }}/.zsh_history"
-- name: Check bat is installed
-  command: bash -c 'command -v bat'
-  register: check_if_bat_is_installed
-  changed_when: false
-  ignore_errors: true
-- name: Check if zoxide is installed
-  command: bash -c 'command -v zoxide'
-  register: check_if_zoxide_is_installed
-  changed_when: false
-  ignore_errors: true
-- name: Check if homebrew is installed
-  stat:
-    path: "{{ homebrew_path }}"
-  register: check_if_homebrew_is_installed
-  changed_when: false
-  ignore_errors: true
+- include_role:
+    name: check-tools
+    allow_duplicates: false
 - name: Copy .zshrc
   template:
     src: zshrc.j2
