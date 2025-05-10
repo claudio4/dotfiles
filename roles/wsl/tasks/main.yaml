@@ -3,9 +3,9 @@
     path: "{{ home }}/.local/bin"
     state: directory
     mode: 0755
-- name: Download WSL 2 pagent binary
+- name: Download npiperelay binary
   get_url:
-    url: "https://github.com/albertony/npiperelay/releases/download/latest/npiperelay_windows_amd64.exe"
+    url: "https://github.com/albertony/npiperelay/releases/latest/download/npiperelay_windows_amd64.exe"
     dest: "{{ home }}/.local/bin/npiperelay.exe"
     mode: 0755
 - name: Create wsl profile
