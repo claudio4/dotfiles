@@ -1,0 +1,8 @@
+- include_role:
+    name: check-tools
+    allow_duplicates: false
+- name: Copy .bashrc
+  template:
+    src: bashrc.j2
+    dest: "{{ home }}/.bashrc"
+    mode: 0644

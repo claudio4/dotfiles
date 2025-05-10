@@ -1,0 +1,60 @@
+{% if check_if_fish_is_installed.rc == 0 %}
+# Use fish as the default shell intead of BASH.
+if [[ "$ISHELL" != "fish" && -z ${BASH_EXECUTION_STRING} && ${SHLVL} == 1 ]]; then
+	shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=''
+    {%if check_if_homebrew_is_installed.stat.exists %}
+	exec "{{ homebrew_path }}/bin/fish" $LOGIN_OPTION
+    {% else %}
+	exec fish $LOGIN_OPTION
+    {% endif %}
+fi
+
+{% endif %}
+# Load the distro default bashrc
+[ -f "/etc/skel/.bashrc" ] && source "/etc/skel/.bashrc"
+
+
+# Set XDG homes if not set
+export XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+export XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+export XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
+
+# Load homebrew
+{% if check_if_homebrew_is_installed.stat.exists %}
+if [ -z "${HOMEBREW_PREFIX}" ]; then
+    export HOMEBREW_PREFIX="{{ homebrew_path }}";
+    export HOMEBREW_CELLAR="{{ homebrew_path }}/Cellar";
+    export HOMEBREW_REPOSITORY="{{ homebrew_path }}";
+    export PATH="{{ homebrew_path }}/bin:{{ homebrew_path }}/sbin${PATH+:$PATH}";
+    [ -z "${MANPATH-}" ] || export MANPATH=":${MANPATH#:}";
+    export INFOPATH="{{ homebrew_path }}/share/info:${INFOPATH:-}";
+fi
+{% endif %}
+
+# Pure prompt from bash-it
+function pure_prompt() {
+    local bold_blue="\[\e[34;1m\]"
+    local green="\[\e[0;32m\]"
+    local red="\[\e[0;31m\]"
+    local yellow="\[\e[0;33m\]"
+    local normal="\[\e[0m\]"
+
+    local ps_host="${bold_blue?}\h${normal?}"
+    local ps_user="${green?}\u${normal?}"
+    local ps_user_mark="${green?} \$ ${normal?}"
+    local ps_root="${red?}\u${red?}"
+    local ps_root_mark="${red?} \$ ${normal?}"
+    local ps_path="${yellow?}\w${normal?}"
+
+    case "${EUID:-$UID}" in
+    0)
+    ps_user_mark="${ps_root_mark}"
+    ps_user="${ps_root}"
+    ;;
+    esac
+    PS1="${ps_user}@${ps_host}:${ps_path}${ps_user_mark}"
+}
+pure_prompt
+
+

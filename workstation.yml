@@ -2,13 +2,16 @@
   hosts: "{{ ansible_limit | default('localhost') }}"
   vars:
     homebrew_path: /home/linuxbrew/.linuxbrew
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{homebrew_path}}/bin"
   roles:
+    - role: basic-tools
+    - role: build-essentials
+    - role: install-homebrew
+      homebrew_use_become: true
+    - role: homebrew
+    - role: bash
     - role: fish
-    # - role: basic-tools
-    # - role: build-essentials
-    # - role: install-homebrew
-    #   homebrew_use_become: true
-    # - role: homebrew
   tasks:
     - name: Print user information
       ansible.builtin.debug:
