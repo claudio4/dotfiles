@@ -3,11 +3,12 @@
   vars:
     homebrew_path: /home/linuxbrew/.linuxbrew
   roles:
-    - role: basic-tools
-    - role: build-essentials
-    - role: install-homebrew
-      homebrew_use_become: true
-    - role: homebrew
+    - role: fish
+    # - role: basic-tools
+    # - role: build-essentials
+    # - role: install-homebrew
+    #   homebrew_use_become: true
+    # - role: homebrew
   tasks:
     - name: Print user information
       ansible.builtin.debug:

@@ -1,6 +1,6 @@
 FROM docker.io/library/fedora:latest
 
-RUN dnf install -y ansible sudo
+RUN dnf install -y ansible sudo rsync
 WORKDIR /work
 
 RUN groupadd --gid 1000 ansible && \

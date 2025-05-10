@@ -1,0 +1,16 @@
+- name: Check bat is installed
+  command: bash -c 'command -v bat'
+  register: check_if_bat_is_installed
+  changed_when: false
+  ignore_errors: true
+- name: Check if zoxide is installed
+  command: bash -c 'command -v zoxide'
+  register: check_if_zoxide_is_installed
+  changed_when: false
+  ignore_errors: true
+- name: Check if homebrew is installed
+  stat:
+    path: "{{ homebrew_path }}"
+  register: check_if_homebrew_is_installed
+  changed_when: false
+  ignore_errors: true

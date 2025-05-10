@@ -1,0 +1,21 @@
+{% if check_if_homebrew_is_installed.stat.exists %}
+if not set --query HOMEBREW_PREFIX
+    set --global --export HOMEBREW_PREFIX "{{ homebrew_path }}"
+    set --global --export HOMEBREW_CELLAR "{{ homebrew_path }}/Cellar"
+    set --global --export HOMEBREW_REPOSITORY "{{ homebrew_path }}"
+
+    fish_add_path --global --move --path "{{ homebrew_path }}/bin" "{{ homebrew_path }}/sbin"
+
+    if test -n "$MANPATH[1]"
+        set --global --export MANPATH '' $MANPATH
+    end
+
+    if not contains "{{ homebrew_path }}/share/info" $INFOPATH
+        set --global --export INFOPATH {{ homebrew_path }}/share/info $INFOPATH
+    end
+end
+{% endif %}
+
+if [ -d "$HOME/.local/bin" ]
+    fish_add_path --global --path $HOME/.local/bin
+end

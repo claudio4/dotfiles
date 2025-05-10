@@ -1,0 +1,67 @@
+- name: Create fish config directoy
+  file:
+    path: "{{ config_dir }}/fish"
+    state: directory
+    mode: 0755
+- include_role:
+    name: check-tools
+    allow_duplicates: false
+- name: Copy fish config
+  template:
+    src: config.fish.j2
+    dest: "{{ config_dir }}/fish/config.fish"
+    mode: 0644
+- name: Copy .conf.d folder
+  # We use syncronize so we can skip some files with .rsync-filter to allow for conditional upload
+  synchronize:
+    src: files/conf.d
+    dest: "{{ config_dir }}/fish"
+- name: Copy functions fodler
+  synchronize:
+    src: functions
+    dest: "{{ config_dir }}/fish"
+- name: Alias bat to cat
+  when: check_if_bat_is_installed.rc == 0
+  copy:
+    src: functions/cat.cond.fish
+    dest: "{{ config_dir }}/fish/functions/cat.fish"
+- name: Add WSL related config
+  when: is_wsl
+  block:
+    - copy:
+        src: functions/wcd.cond.fish
+        dest: "{{ config_dir }}/fish/functions/wcd.fish"
+    - copy:
+        src: functions/__register_windows_terminal_hook.cond.fish
+        dest: "{{ config_dir }}/fish/functions/__register_windows_terminal_hook.fish"
+- name: Add zypper wrapper
+  when: ansible_os_family == "Suse"
+  copy:
+    src: functions/zypper.cond.fish
+    dest: "{{ config_dir }}/fish/functions/zypper.fish"
+- name: Add lazy zoxide integration
+  when: check_if_zoxide_is_installed.rc == 0
+  copy:
+    src: functions/z.cond.fish
+    dest: "{{ config_dir }}/fish/functions/z.fish"
+- name: Copy append PATH
+  template:
+    src: conf.d/30_append_path.fish.j2
+    dest: "{{ config_dir }}/fish/conf.d/30_append_path.fish"
+    mode: 0644
+- name: Check if fisher is installed
+  command: fish -c 'type -q fisher'
+  register: check_if_fisher_is_installed
+  changed_when: false
+  ignore_errors: true
+- name: Install fisher
+  when: check_if_fisher_is_installed.rc != 0
+  command: fish -c 'curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher'
+- name: Copy fish plugin list
+  copy:
+    src: fish_plugins
+    dest: "{{ config_dir }}/fish/fish_plugins"
+  register: copy_fish_plugins
+- name: Install fish plugins
+  when: copy_fish_plugins.changed
+  command: fish -c 'fisher update'
