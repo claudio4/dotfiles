@@ -7,12 +7,19 @@
   roles:
     - role: basic-tools
     - role: build-essentials
-    - role: install-homebrew
-      homebrew_use_become: true
+    - role: git
     - role: homebrew
+      homebrew_use_become: true
+    - role: useful-dirs
     - role: bash
     - role: fish
-  tasks:
-    - name: Print user information
-      ansible.builtin.debug:
-        msg: "User: {{ ansible_facts.user_id }}, UID: {{ ansible_facts.user_uid }}, GID: {{ ansible_facts.user_gid }}"
+    - role: zsh
+      zsh_set_default_shell: false
+    - role: vim
+    - role: neovim
+      neovim_role_should_install: false
+    - role: go
+      go_role_should_install: false
+    - role: tmux
+    - role: wsl
+      when: is_wsl
