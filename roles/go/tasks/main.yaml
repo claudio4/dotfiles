@@ -1,6 +1,9 @@
 - include_vars: "{{ ansible_pkg_mgr }}.yaml"
 - name: Install Go
+  when: go_role_should_install
   become: true
+  tags:
+    - use_become
   package:
     name: "{{ go_package }}"
     state: present

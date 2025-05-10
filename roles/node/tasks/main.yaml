@@ -1,5 +1,7 @@
 - name: Install fnm dependencies
   become: true
+  tags:
+    - use_become
   package:
     name:
       - curl
@@ -10,17 +12,17 @@
     path: "{{ fnm_dir }}/fnm"
   register: fnm_binary
 - block:
-  - name: Download fnm install script
-    get_url:
-      url: https://fnm.vercel.app/install
-      dest: /tmp/fnm_install.sh
-      mode: 0755
-  - name: Install fnm
-    shell: "/tmp/fnm_install.sh --skip-shell --install-dir {{ fnm_dir }}"
-  - name: Remove installer script
-    file:
-      path: /tmp/fnm_install.sh
-      state: absent
+    - name: Download fnm install script
+      get_url:
+        url: https://fnm.vercel.app/install
+        dest: /tmp/fnm_install.sh
+        mode: 0755
+    - name: Install fnm
+      shell: "/tmp/fnm_install.sh --skip-shell --install-dir {{ fnm_dir }}"
+    - name: Remove installer script
+      file:
+        path: /tmp/fnm_install.sh
+        state: absent
   when: not fnm_binary.stat.exists
 - name: Create .local/bin
   file:

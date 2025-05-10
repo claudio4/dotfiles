@@ -1,5 +1,7 @@
 - name: Install extra tooling using the distro's package manager
   become: true
+  tags:
+    - use_become
   package:
     name:
       - bat
@@ -11,6 +13,8 @@
 # bat as usual.
 - name: Link batcat to bat
   become: true
+  tags:
+    - use_become
   file:
     src: /usr/bin/batcat
     dest: /usr/bin/bat

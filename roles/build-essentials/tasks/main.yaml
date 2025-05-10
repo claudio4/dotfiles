@@ -11,6 +11,8 @@
     cache_valid_time: 3600
   when: ansible_os_family == "Debian"
   become: true
+  tags:
+    - use_become
 - name: RHEL Family | Install Development Tools group and other packages
   ansible.builtin.package:
     name:
@@ -22,6 +24,8 @@
     state: present
   when: ansible_os_family == "RedHat"
   become: true
+  tags:
+    - use_become
 - name: OpenSUSE | Install devel_basis pattern
   block:
     - name: OpenSUSE | Install devel_basis pattern
@@ -38,6 +42,8 @@
           - git-core
         state: present
   become: true
+  tags:
+    - use_become
   when: ansible_os_family == "Suse"
 - name: Arch Linux | Install base-devel
   ansible.builtin.pacman:
@@ -50,4 +56,6 @@
     state: present
     update_cache: true
   become: true
+  tags:
+    - use_become
   when: ansible_os_family == "Archlinux"

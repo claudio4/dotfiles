@@ -1,5 +1,7 @@
 - name: Install neovim and dependencies
   become: true
+  tags:
+    - use_become
   dnf:
     name:
       - neovim

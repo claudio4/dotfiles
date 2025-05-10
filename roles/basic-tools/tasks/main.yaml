@@ -1,5 +1,7 @@
 - name: Install basic tooling using the distro's package manager
   become: true
+  tags:
+    - use_become
   package:
     name:
       - curl

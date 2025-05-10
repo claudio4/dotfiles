@@ -1,10 +1,14 @@
 - name: Enable atim/lazygit Copr repository
   become: true
+  tags:
+    - use_become
   community.general.copr:
     name: atim/lazygit
     state: enabled
 - name: Install lazygit
   become: true
+  tags:
+    - use_become
   dnf:
-    name: 'lazygit'
+    name: "lazygit"
     state: present
