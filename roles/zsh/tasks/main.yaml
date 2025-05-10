@@ -1,3 +1,11 @@
+- name: install ZSH
+  when: zsh_role_should_install
+  become: true
+  tags:
+    - use_become
+  package:
+    name: zsh
+    state: present
 - name: Create data directory
   file:
     path: "{{ data_dir }}"
@@ -62,7 +70,9 @@
     mode: 0644
 - name: Change default shell to zsh
   become: true
+  tags:
+    - use_become
   user:
     name: "{{ user }}"
     shell: /bin/zsh
-  when: set_default_shell
+  when: zsh_set_default_shell

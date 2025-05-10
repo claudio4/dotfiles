@@ -1,5 +1,7 @@
 - name: Install lazygit
   become: true
+  tags:
+    - use_become
   zypper:
-    name: 'lazygit'
+    name: "lazygit"
     state: present

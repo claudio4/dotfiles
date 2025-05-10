@@ -1,3 +1,5 @@
+- import_tasks: install.yaml
+  when: homebrew_role_should_install
 - name: "Create {{ config_dir }}/homebrew"
   file:
     path: "{{ config_dir }}/homebrew"

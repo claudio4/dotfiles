@@ -1,5 +1,8 @@
 - name: Install
+  when: git_role_should_install
   become: true
+  tags:
+    - use_become
   package:
     name: git
     state: present

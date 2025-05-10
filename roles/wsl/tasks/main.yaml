@@ -20,6 +20,8 @@
     mode: 0755
 - name: Install socat package
   become: true
+  tags:
+    - use_become
   package:
     name: socat
     state: present

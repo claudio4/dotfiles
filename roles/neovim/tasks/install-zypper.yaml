@@ -1,11 +1,15 @@
 - name: Install neovim and dependencies
   become: true
+  tags:
+    - use_become
   zypper:
-    name: ['neovim', 'fzf']
+    name: ["neovim", "fzf"]
     state: present
 - name: Install C/C++ build tools
   become: true
+  tags:
+    - use_become
   zypper:
-    name: ['devel_C_C++']
+    name: ["devel_C_C++"]
     type: pattern
     state: present

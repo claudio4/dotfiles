@@ -1,4 +1,5 @@
 - include_tasks: install-{{ ansible_pkg_mgr }}.yaml
+  when: neovim_role_should_install
 - name: Clone neovim config
   git:
     repo: https://github.com/claudio4/nvim-config.git
@@ -10,4 +11,3 @@
   failed_when:
     - repo_clone.failed
     - not 'Local modifications exist' in repo_clone.msg
-

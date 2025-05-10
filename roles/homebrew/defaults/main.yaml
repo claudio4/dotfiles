@@ -1,3 +1,8 @@
+homebrew_path: "{{ home }}/.local/opt/homebrew"
+homebrew_use_become: false
+homebrew_role_should_install: true
+
+# Packages
 deno: true
 golang: true
 neovim: true
