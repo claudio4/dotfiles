@@ -29,7 +29,7 @@ export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
 # Move history to XDG directory
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
-{% if check_if_homebrew_is_installed.stat.exists %}
+{% if is_homebrew_installed %}
 # Add Homebrew support
 export HOMEBREW_PREFIX="{{ homebrew_path }}";
 export HOMEBREW_CELLAR="{{ homebrew_path }}/Cellar";
@@ -49,7 +49,7 @@ plugins=(
     git
     sudo
     zsh-autosuggestions
-{% if check_if_zoxide_is_installed.rc == 0 %}
+{% if is_zoxide_installed %}
     zoxide
 {% endif %}
 )
@@ -84,7 +84,7 @@ P10K_FILE="$XDG_CONFIG_HOME/shell/p10k.zsh"
 # Aliases
 alias svim="sudo -E vim"
 alias pn="pnpm"
-{% if check_if_bat_is_installed.rc == 0 %}
+{% if is_bat_installed %}
 alias cat="bat --decorations never -P"
 {% endif %}
 

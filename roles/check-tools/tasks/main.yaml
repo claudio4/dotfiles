@@ -1,21 +1,29 @@
 - name: Check bat is installed
   command: bash -c 'command -v bat'
-  register: check_if_bat_is_installed
+  register: is_bat_installed
   changed_when: false
   ignore_errors: true
+- set_fact:
+    is_bat_installed: is_bat_installed.rc == 0
 - name: Check fish is installed
   command: bash -c 'command -v fish'
-  register: check_if_fish_is_installed
+  register: is_fish_installed
   changed_when: false
   ignore_errors: true
+- set_fact:
+    is_fish_installed: is_fish_installed.rc == 0
 - name: Check if homebrew is installed
   stat:
     path: "{{ homebrew_path }}"
-  register: check_if_homebrew_is_installed
+  register: is_homebrew_installed
   changed_when: false
   ignore_errors: true
+- set_fact:
+    is_homebrew_installed: is_homebrew_installed.stat.exists
 - name: Check if zoxide is installed
   command: bash -c 'command -v zoxide'
-  register: check_if_zoxide_is_installed
+  register: is_zoxide_installed
   changed_when: false
   ignore_errors: true
+- set_fact:
+    is_zoxide_installed: is_zoxide_installed.rc == 0

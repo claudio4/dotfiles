@@ -1,4 +1,4 @@
-{% if check_if_homebrew_is_installed.stat.exists %}
+{% if is_homebrew_installed %}
 if not set --query HOMEBREW_PREFIX
     set --global --export HOMEBREW_PREFIX "{{ homebrew_path }}"
     set --global --export HOMEBREW_CELLAR "{{ homebrew_path }}/Cellar"

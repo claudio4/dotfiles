@@ -1,8 +1,8 @@
-{% if check_if_fish_is_installed.rc == 0 %}
+{% if is_fish_installed %}
 # Use fish as the default shell intead of BASH.
 if [[ "$ISHELL" != "fish" && -z ${BASH_EXECUTION_STRING} && ${SHLVL} == 1 ]]; then
 	shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=''
-    {%if check_if_homebrew_is_installed.stat.exists %}
+    {%if is_homebrew_installed %}
 	exec "{{ homebrew_path }}/bin/fish" $LOGIN_OPTION
     {% else %}
 	exec fish $LOGIN_OPTION
@@ -21,7 +21,7 @@ export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
 export XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
 
 # Load homebrew
-{% if check_if_homebrew_is_installed.stat.exists %}
+{% if is_homebrew_installed %}
 if [ -z "${HOMEBREW_PREFIX}" ]; then
     export HOMEBREW_PREFIX="{{ homebrew_path }}";
     export HOMEBREW_CELLAR="{{ homebrew_path }}/Cellar";

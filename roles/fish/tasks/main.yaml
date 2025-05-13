@@ -21,7 +21,7 @@
     src: functions
     dest: "{{ config_dir }}/fish"
 - name: Alias bat to cat
-  when: check_if_bat_is_installed.rc == 0
+  when: is_bat_installed
   copy:
     src: functions/cat.cond.fish
     dest: "{{ config_dir }}/fish/functions/cat.fish"
@@ -40,7 +40,7 @@
     src: functions/zypper.cond.fish
     dest: "{{ config_dir }}/fish/functions/zypper.fish"
 - name: Add lazy zoxide integration
-  when: check_if_zoxide_is_installed.rc == 0
+  when: is_zoxide_installed
   copy:
     src: functions/z.cond.fish
     dest: "{{ config_dir }}/fish/functions/z.fish"
