@@ -1,7 +1,5 @@
 - name: Create homebrew directory
   become: "{{ homebrew_use_become }}"
-  tags:
-    - use_become
   file:
     path: "{{ homebrew_path }}"
     state: directory

@@ -3,8 +3,8 @@ homebrew_use_become: false
 homebrew_role_should_install: true
 
 # Packages
-deno: true
-golang: true
-neovim: true
-node: true
-rust: true
+install_deno: "{{ 'deno' not in ansible_skip_tags }}"
+install_golang: "{{ 'golang' not in ansible_skip_tags }}"
+install_neovim: "{{ 'neovim' not in ansible_skip_tags }}"
+install_node: "{{ 'node' not in ansible_skip_tags }}"
+install_rust: "{{ 'rust' not in ansible_skip_tags }}"

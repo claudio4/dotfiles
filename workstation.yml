@@ -8,8 +8,10 @@
     - role: basic-tools
     - role: build-essentials
     - role: git
+      tags: [git]
     - role: homebrew
       homebrew_use_become: true
+      tags: [homebrew]
     - role: useful-dirs
     - role: bash
     - role: fish
@@ -18,8 +20,10 @@
     - role: vim
     - role: neovim
       neovim_role_should_install: false
+      tags: [neovim]
     - role: go
       go_role_should_install: false
+      tags: [golang]
     - role: tmux
     - role: wsl
       when: is_wsl

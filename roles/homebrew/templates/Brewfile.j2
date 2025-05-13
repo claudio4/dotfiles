@@ -6,20 +6,20 @@ brew "zoxide"
 
 brew "jj"
 brew "lazygit"
-{% if neovim %}
+{% if install_neovim %}
 brew "neovim"
 {% endif %}
 
-{% if golang %}
+{% if install_golang %}
 brew "go"
 {% endif %}
-{% if rust %}
+{% if install_rust %}
 brew "rustup"
 {% endif %}
-{% if node %}
+{% if install_node %}
 brew "node"
 {% endif %}
-{% if deno %}
+{% if install_deno %}
 brew "deno"
 {% endif %}
 
