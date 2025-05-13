@@ -29,7 +29,7 @@ export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
 # Move history to XDG directory
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
-{% if is_homebrew_installed %}
+{% if is_homebrew_installed and homebrew_path is defined %}
 # Add Homebrew support
 export HOMEBREW_PREFIX="{{ homebrew_path }}";
 export HOMEBREW_CELLAR="{{ homebrew_path }}/Cellar";

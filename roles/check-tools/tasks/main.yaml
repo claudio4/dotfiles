@@ -13,13 +13,14 @@
 - set_fact:
     is_fish_installed: is_fish_installed.rc == 0
 - name: Check if homebrew is installed
+  when: hombrew_path is defined
   stat:
     path: "{{ homebrew_path }}"
   register: is_homebrew_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_homebrew_installed: is_homebrew_installed.stat.exists
+    is_homebrew_installed: hombrew_path is define and is_homebrew_installed.stat.exists
 - name: Check if zoxide is installed
   command: bash -c 'command -v zoxide'
   register: is_zoxide_installed
