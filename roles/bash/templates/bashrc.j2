@@ -1,3 +1,10 @@
+{% if is_wsl %}
+# In WSL .profile is not sourced by default, so we do this.
+source "$HOME/.profile"
+# Load WSL specific config
+source "{{ config_dir }}/shell/wsl-profile.sh"
+{% endif %}
+
 {% if is_fish_installed %}
 # Use fish as the default shell intead of BASH.
 if [[ "$ISHELL" != "fish" && -z ${BASH_EXECUTION_STRING} && ${SHLVL} == 1 ]]; then
@@ -31,6 +38,10 @@ if [ -z "${HOMEBREW_PREFIX}" ]; then
     export INFOPATH="{{ homebrew_path }}/share/info:${INFOPATH:-}";
 fi
 {% endif %}
+
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
 
 # Pure prompt from bash-it
 function pure_prompt() {

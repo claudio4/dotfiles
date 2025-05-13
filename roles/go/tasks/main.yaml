@@ -20,6 +20,6 @@
 - name: Add gopath binaries to PATH
   lineinfile:
     path: "{{ home }}/.profile"
-    line: "export PATH=$PATH:{{ go_path }}/bin"
+    line: 'export PATH="$PATH:{{ go_path }}/bin"'
     state: present
     create: yes
