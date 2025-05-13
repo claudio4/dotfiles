@@ -13,6 +13,9 @@
       homebrew_use_become: true
       tags: [homebrew]
     - role: useful-dirs
+    - role: go
+      go_role_should_install: false
+      tags: [golang]
     - role: bash
     - role: fish
     - role: zsh
@@ -21,9 +24,6 @@
     - role: neovim
       neovim_role_should_install: false
       tags: [neovim]
-    - role: go
-      go_role_should_install: false
-      tags: [golang]
     - role: tmux
     - role: wsl
       when: is_wsl

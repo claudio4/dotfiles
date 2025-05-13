@@ -16,6 +16,12 @@ if not set --query HOMEBREW_PREFIX
 end
 {% endif %}
 
+{% if go_path is defined and go_path %}
+if set --query GOPATH
+    fish_add_path --global --path $GOPATH/bin
+end
+{% endif %}
+
 if [ -d "$HOME/.local/bin" ]
     fish_add_path --global --path $HOME/.local/bin
 end
