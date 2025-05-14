@@ -2,6 +2,7 @@
   become: true
   tags:
     - use_become
+    - use_package_mgr
   zypper:
     name: ["neovim", "fzf"]
     state: present
@@ -9,6 +10,7 @@
   become: true
   tags:
     - use_become
+    - use_package_mgr
   zypper:
     name: ["devel_C_C++"]
     type: pattern

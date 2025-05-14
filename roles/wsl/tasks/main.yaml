@@ -22,6 +22,7 @@
   become: true
   tags:
     - use_become
+    - use_package_mgr
   package:
     name: socat
     state: present

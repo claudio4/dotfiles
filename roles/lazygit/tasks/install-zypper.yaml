@@ -2,6 +2,7 @@
   become: true
   tags:
     - use_become
+    - use_package_mgr
   zypper:
     name: "lazygit"
     state: present
