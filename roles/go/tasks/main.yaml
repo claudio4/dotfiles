@@ -1,13 +1,14 @@
-- include_vars: "{{ ansible_pkg_mgr }}.yaml"
 - name: Install Go
   when: go_role_should_install
   become: true
   tags:
     - use_become
     - use_package_mgr
-  package:
-    name: "{{ go_package }}"
-    state: present
+  block:
+    - include_vars: "{{ ansible_pkg_mgr }}.yaml"
+    - package:
+        name: "{{ go_package }}"
+        state: present
 - name: Create gopath directory
   file:
     path: "{{ go_path }}/bin"

@@ -1,0 +1,5 @@
+- name: Set-up workstation enviorment
+  hosts: "{{ ansible_limit | default('localhost') }}"
+  tasks:
+    - debug:
+        var: "is_wsl"
