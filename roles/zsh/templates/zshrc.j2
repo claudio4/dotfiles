@@ -49,6 +49,9 @@ plugins=(
     git
     sudo
     zsh-autosuggestions
+{% if is_fzf_installed %}
+    fzf
+{% endif %}
 {% if is_zoxide_installed %}
     zoxide
 {% endif %}

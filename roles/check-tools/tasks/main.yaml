@@ -12,6 +12,14 @@
   ignore_errors: true
 - set_fact:
     is_fish_installed: is_fish_installed.rc == 0
+
+- name: Check if fzf is installed
+  command: bash -c 'command -v fzf'
+  register: is_fzf_installed
+  changed_when: false
+  ignore_errors: true
+- set_fact:
+    is_fzf_installed: is_fzf_installed.rc == 0
 - name: Check if homebrew is installed
   when: hombrew_path is defined
   stat:
