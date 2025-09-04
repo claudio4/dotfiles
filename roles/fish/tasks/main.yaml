@@ -44,6 +44,21 @@
   copy:
     src: functions/z.cond.fish
     dest: "{{ config_dir }}/fish/functions/z.fish"
+- name: Alias ls to eza
+  when: is_eza_installed
+  copy:
+    src: functions/ls.cond.fish
+    dest: "{{ config_dir }}/fish/functions/ls.fish"
+- name: Add l alias
+  template:
+    src: functions/l.fish.j2
+    dest: "{{ config_dir }}/fish/functions/l.fish"
+    mode: 0644
+- name: Add v alias
+  template:
+    src: functions/v.fish.j2
+    dest: "{{ config_dir }}/fish/functions/v.fish"
+    mode: 0644
 - name: Copy append PATH
   template:
     src: conf.d/30_append_path.fish.j2

@@ -57,8 +57,8 @@ plugins=(
 {% endif %}
 )
 
-# User settings
-export DO_NOT_TRACK=1
+# Enable vim keybinds
+bindkey -v
 
 ## zsh-autosuggestions settings
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
@@ -89,6 +89,11 @@ alias svim="sudo -E vim"
 alias pn="pnpm"
 {% if is_bat_installed %}
 alias cat="bat --decorations never -P"
+{% endif %}
+{% if is_nvim_installed %}
+alias v="nvim"
+{% else %}
+alias v="vim"
 {% endif %}
 
 # Functions
