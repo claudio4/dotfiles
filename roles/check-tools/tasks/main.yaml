@@ -4,48 +4,48 @@
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_bat_installed: is_bat_installed.rc == 0
+    is_bat_installed: "{{ is_bat_installed.rc == 0 }}"
 - name: Check fish is installed
   command: bash -c 'command -v fish'
   register: is_fish_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_fish_installed: is_fish_installed.rc == 0
+    is_fish_installed: "{{ is_fish_installed.rc == 0}}"
 - name: Check if eza is installed
   command: bash -c 'command -v eza'
   register: is_eza_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_eza_installed: is_eza_installed.rc == 0
+    is_eza_installed: "{{ is_eza_installed.rc == 0 }}"
 - name: Check if fzf is installed
   command: bash -c 'command -v fzf'
   register: is_fzf_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_fzf_installed: is_fzf_installed.rc == 0
+    is_fzf_installed: "{{ is_fzf_installed.rc == 0 }}"
 - name: Check if homebrew is installed
-  when: hombrew_path is defined
+  when: homebrew_path is defined
   stat:
     path: "{{ homebrew_path }}"
   register: is_homebrew_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_homebrew_installed: hombrew_path is define and is_homebrew_installed.stat.exists
+    is_homebrew_installed: "{{ homebrew_path is defined and is_homebrew_installed.stat.exists }}"
 - name: Check if nvim is installed
   command: bash -c 'command -v nvim'
   register: is_nvim_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_nvim_installed: is_nvim_installed.rc == 0
+    is_nvim_installed: "{{ is_nvim_installed.rc == 0 }}"
 - name: Check if zoxide is installed
   command: bash -c 'command -v zoxide'
   register: is_zoxide_installed
   changed_when: false
   ignore_errors: true
 - set_fact:
-    is_zoxide_installed: is_zoxide_installed.rc == 0
+    is_zoxide_installed: "{{ is_zoxide_installed.rc == 0 }}"
