@@ -57,8 +57,6 @@ plugins=(
 {% endif %}
 )
 
-# Enable vim keybinds
-bindkey -v
 
 ## zsh-autosuggestions settings
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
@@ -83,6 +81,9 @@ source $ZSH/oh-my-zsh.sh
 # Load P10k
 P10K_FILE="$XDG_CONFIG_HOME/shell/p10k.zsh"
 [[ -f $P10K_FILE ]] && source $P10K_FILE
+
+# Enable vim keybinds
+bindkey -v
 
 # Aliases
 alias svim="sudo -E vim"
