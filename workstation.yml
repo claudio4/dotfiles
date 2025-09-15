@@ -27,14 +27,3 @@
     - role: tmux
     - role: wsl
       when: is_wsl
-  tasks:
-    - name: Debug all tool checks
-      debug:
-        msg:
-          bat: "{{ is_bat_installed }}"
-          fish: "{{ is_fish_installed }}"
-          eza: "{{ is_eza_installed }}"
-          fzf: "{{ is_fzf_installed }}"
-          homebrew: "{{ is_homebrew_installed }}"
-          nvim: "{{ is_nvim_installed }}"
-          zoxide: "{{ is_zoxide_installed }}"
