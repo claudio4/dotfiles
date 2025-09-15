@@ -6,8 +6,8 @@ source "{{ config_dir }}/shell/wsl-profile.sh"
 {% endif %}
 
 {% if is_fish_installed %}
-# Use fish as the default shell intead of BASH.
-if [[ "$ISHELL" != "fish" && -z ${BASH_EXECUTION_STRING} && ${SHLVL} == 1 ]]; then
+# Use fish as an itneractive shell isntead of BASH.
+if [[ -z ${BASH_EXECUTION_STRING} && $- == *i* && $(ps --no-header --pid=$PPID --format=comm) != "fish" ]]; then
 	shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=''
     {%if is_homebrew_installed %}
 	exec "{{ homebrew_path }}/bin/fish" $LOGIN_OPTION
@@ -44,7 +44,7 @@ if [ -d "$HOME/.local/bin" ]; then
 fi
 
 # Pure prompt from bash-it
-function pure_prompt() {
+function __pure_prompt() {
     local bold_blue="\[\e[34;1m\]"
     local green="\[\e[0;32m\]"
     local red="\[\e[0;31m\]"
@@ -53,7 +53,7 @@ function pure_prompt() {
 
     local ps_host="${bold_blue?}\h${normal?}"
     local ps_user="${green?}\u${normal?}"
-    local ps_user_mark="${green?} \$ ${normal?}"
+    local ps_user_mark="${green?}\$ ${normal?}"
     local ps_root="${red?}\u${red?}"
     local ps_root_mark="${red?} \$ ${normal?}"
     local ps_path="${yellow?}\w${normal?}"
@@ -66,6 +66,6 @@ function pure_prompt() {
     esac
     PS1="${ps_user}@${ps_host}:${ps_path}${ps_user_mark}"
 }
-pure_prompt
+__pure_prompt
 
 
