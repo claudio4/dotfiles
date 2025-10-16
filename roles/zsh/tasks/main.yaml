@@ -24,12 +24,6 @@
     dest: "{{ ohmyzsh_dir }}/custom/themes/powerlevel10k"
     clone: true
     depth: 1
-- name: install zsh-autosuggestions
-  git:
-    repo: https://github.com/zsh-users/zsh-autosuggestions
-    dest: "{{ ohmyzsh_dir }}/custom/plugins/zsh-autosuggestions"
-    clone: true
-    depth: 1
 - name: "Create {{ config_dir }}/shell"
   file:
     path: "{{ config_dir }}/shell"
