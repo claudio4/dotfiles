@@ -55,6 +55,12 @@ plugins=(
 {% endif %}
 )
 
+# Set user vairables before local profiles are loaded.
+{% if is_nvim_installed %}
+export EDITOR="nvim"
+{% else %}
+export EDITOR="vim"
+{% endif %}
 
 ## enable ctrl+backspace
 bindkey '^H' backward-kill-word
