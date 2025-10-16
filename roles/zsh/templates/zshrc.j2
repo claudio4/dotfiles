@@ -47,8 +47,6 @@ export INFOPATH="{{ homebrew_path }}/share/info:${INFOPATH:-}";
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 plugins=(
     git
-    sudo
-    zsh-autosuggestions
 {% if is_fzf_installed %}
     fzf
 {% endif %}
@@ -57,9 +55,6 @@ plugins=(
 {% endif %}
 )
 
-
-## zsh-autosuggestions settings
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 ## enable ctrl+backspace
 bindkey '^H' backward-kill-word
