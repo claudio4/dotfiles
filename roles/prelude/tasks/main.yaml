@@ -1,0 +1,3 @@
+- name: Determine if system uses systemd
+  set_fact:
+    uses_systemd: "{{ ansible_service_mgr == 'systemd' }}"

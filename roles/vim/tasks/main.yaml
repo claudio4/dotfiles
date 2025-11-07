@@ -8,6 +8,16 @@
     path: "{{ home }}/.vim/autoload"
     state: directory
     mode: 0755
+- name: Create keybinds.vim
+  copy:
+    src: keybinds.vim
+    dest: "{{ home }}/.vim/keybinds.vim"
+    mode: 0644
+- name: Create osc52.vim
+  copy:
+    src: osc52.vim
+    dest: "{{ home }}/.vim/osc52.vim"
+    mode: 0644
 - name: Install vim color theme (autload)
   get_url:
     url: "https://raw.githubusercontent.com/joshdick/onedark.vim/master/autoload/onedark.vim"
@@ -23,7 +33,6 @@
     url: "https://raw.githubusercontent.com/joshdick/onedark.vim/master/colors/onedark.vim"
     dest: "{{ home }}/.vim/colors/onedark.vim"
     mode: 0644
-
 - name: Create .vim/pack/plugins directory
   file:
     path: "{{ home }}/.vim/pack/plugins"

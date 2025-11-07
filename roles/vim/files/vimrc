@@ -1,13 +1,38 @@
+" Colors
 syntax on
 colorscheme onedark
 
+" Line numbers
+set number
+set relativenumber
+
+" Identation
+filetype plugin indent on
+set autoindent
 set expandtab
-set foldmethod=indent
-set foldlevelstart=99
-set shiftwidth=4
 set smarttab
 set softtabstop=0
 set tabstop=4
+set shiftwidth=4
+
+" Search
+set ignorecase
+set smartcase
+set incsearch
+
+" Folding
+set foldlevelstart=99
+set foldmethod=indent
+
+" Modern bacspace
+set backspace=indent,eol,start
+
+" Split window behavior
+set splitbelow
+set splitright
 
 " Allow saving of files as sudo when I forgot to start vim using sudo.
 cmap w!! w !sudo tee > /dev/null %
+
+source ~/.vim/keybinds.vim
+source ~/.vim/osc52.vim
