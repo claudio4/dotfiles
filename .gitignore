@@ -5,3 +5,8 @@
 # hosts file
 hosts.ini
 hosts.txt
+
+# bun stuff
+node_modules
+bun.lock
+package.json
