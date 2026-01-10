@@ -1,7 +1,0 @@
-- name: Install lazygit
-  become: true
-  tags:
-    - use_become
-  pacman:
-    name: "lazygit"
-    state: present

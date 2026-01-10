@@ -1,9 +1,0 @@
-- name: Install neovim and dependencies
-  become: true
-  tags:
-    - use_become
-  apt:
-    name:
-      - neovim
-      - build-essential
-      - fzf
