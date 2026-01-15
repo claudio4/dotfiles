@@ -12,6 +12,6 @@ tab_width = 4
 [*.md]
 trim_trailing_whitespace = false
 
-[*.{js,json,yml,yaml}]
+[*.{js,json,ts,yml,yaml}]
 tab_width = 2
 indent_size = 2

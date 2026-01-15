@@ -1,6 +1,6 @@
-import { getSystemPackageManager, PackageDefinition, PackageManager, QueuedPackageManager } from "./manager";
+import { getSystemPackageManager, type PackageDefinition, type PackageManager, CachedPackageManager } from "./manager";
 
-const systemPkgManager = getQueuedSystemPackageManagerOrFailed();
+const systemPkgManager = getCachedSystemPackageManagerOrFailed();
 let defaultPkgManager = systemPkgManager;
 
 /**
@@ -8,7 +8,7 @@ let defaultPkgManager = systemPkgManager;
  * The default package manager is initially the system package manager but can be overridden.
  */
 export function install(packages: PackageDefinition[]): Promise<void> {
-    return defaultPkgManager.install(packages);
+  return defaultPkgManager.install(packages);
 }
 
 /**
@@ -16,7 +16,7 @@ export function install(packages: PackageDefinition[]): Promise<void> {
  * The default package manager is initially the system package manager but can be overridden.
  */
 export function refresh(): Promise<void> {
-    return defaultPkgManager.refresh();
+  return defaultPkgManager.refresh();
 }
 
 /**
@@ -25,7 +25,7 @@ export function refresh(): Promise<void> {
  * regardless of any custom package manager configuration.
  */
 export function installWithSystemPackageManager(packages: PackageDefinition[]): Promise<void> {
-    return systemPkgManager.install(packages);
+  return systemPkgManager.install(packages);
 }
 
 /**
@@ -34,7 +34,7 @@ export function installWithSystemPackageManager(packages: PackageDefinition[]): 
  * regardless of any custom package manager configuration.
  */
 export function refreshWithSystemPackageManager(): Promise<void> {
-    return systemPkgManager.refresh();
+  return systemPkgManager.refresh();
 }
 
 /**
@@ -42,22 +42,22 @@ export function refreshWithSystemPackageManager(): Promise<void> {
  * This allows substituting a custom package manager implementation for most tasks.
  */
 export function overrideDefaultPackageManager(pm: PackageManager) {
-    defaultPkgManager = pm;
+  defaultPkgManager = pm;
 }
 
-function getQueuedSystemPackageManagerOrFailed(): PackageManager {
-    try {
-        const pm = getSystemPackageManager();
-        return new QueuedPackageManager(pm);
-    } catch (err) {
-        return {
-            type: "apt",
-            install: function (packages: PackageDefinition[]): Promise<void> {
-                return Promise.reject(new Error("Package manager is unavailable"));
-            },
-            refresh: function () {
-                return Promise.reject(new Error("Package manager is unavailable"));
-            },
-        };
-    }
+function getCachedSystemPackageManagerOrFailed(): PackageManager {
+  try {
+    const pm = getSystemPackageManager();
+    return new CachedPackageManager(pm);
+  } catch (err) {
+    return {
+      type: "apt",
+      install: function (packages: PackageDefinition[]): Promise<void> {
+        return Promise.reject(new Error("Package manager is unavailable"));
+      },
+      refresh: function () {
+        return Promise.reject(new Error("Package manager is unavailable"));
+      },
+    };
+  }
 }
