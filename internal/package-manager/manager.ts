@@ -39,9 +39,10 @@ abstract class BasePackageManager implements PackageManager {
   }
 
   protected execute(cmd: string[]): Promise<number> {
-    const proc = this.needsSudo && !hasRootprivileges() ? sudo(cmd) : spawn(cmd);
-
-    return proc.exited;
+    if (this.needsSudo && !hasRootprivileges()) {
+      return sudo(cmd).then((r) => r.exitCode);
+    }
+    return spawn(cmd).exited;
   }
 
   async install(packages: PackageDefinition[]): Promise<void> {

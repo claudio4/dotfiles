@@ -1,78 +1,160 @@
-import { spawn, spawnSync, type SpawnOptions } from "bun";
+import { spawn } from "bun";
 
-// Refresh sudo timestamp every 2 minutes to keep it alive
-const KEEPALIVE_INTERVAL_MS = 1000 * 60 * 2;
-let keepAliveTimer: Timer | null = null;
+export type BecomeMethod = "sudo" | "su" | "doas" | "pkexec";
 
-/**
- * Executes a command with sudo privileges.
- * It keeps the sudo `hot` so it only asks for credentials once.
- */
-export async function authenticate() {
-  const check = spawn(["sudo", "-n", "true"], {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
-  // 'sudo -n true' returns exit code 0 if we have privileges, non-zero if we need a password.
-  if ((await check.exited) === 0) {
-    startKeepAlive();
-    return;
-  }
-
-  console.log("\nRoot privileges required for this operation.");
-
-  // We use "inherit" for stdin/out/err so the sudo prompt appears directly in the terminal
-  // and the user can type the password securely without us handling the string.
-  // Sync is used because we don't want anything else messing with the terminal.
-  const auth = spawnSync(["sudo", "-v"], {
-    stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-
-  if (auth.exitCode !== 0) {
-    throw new Error("Failed to authenticate with sudo. Operation aborted.");
-  }
-
-  console.log("Authentication successful.\n");
-  startKeepAlive();
+export interface BecomeOptions {
+  method?: BecomeMethod;
+  user?: string;
+  password?: string;
+  flags?: string[];
+  timeout?: number;
+  env?: Record<string, string>;
 }
 
-/**
- * Spawns a command with root privileges.
- * Will fail if autehnticate has not been called first.
- * Otherwise it behaves the same as Bun.spawn
- */
-export function sudo<
-  const In extends SpawnOptions.Writable = "ignore",
-  const Out extends SpawnOptions.Readable = "pipe",
-  const Err extends SpawnOptions.Readable = "inherit",
->(cmd: string[], options?: SpawnOptions.SpawnOptions<In, Out, Err>) {
-  if (!keepAliveTimer) {
-    throw new Error("sudo authentication required");
-  }
-  return spawn(["sudo", ...cmd], options);
+export interface BecomeResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  success: boolean;
 }
 
-/**
- * Starts a background loop to refresh the sudo timestamp.
- * This ensures long-running scripts don't prompt for a password again.
- */
-function startKeepAlive() {
-  if (keepAliveTimer) return;
+export class BecomeError extends Error {
+  public readonly exitCode: number | null;
+  public readonly stdout: string;
+  public readonly stderr: string;
 
-  keepAliveTimer = setInterval(() => {
-    // Run 'sudo -v' silently to update the timestamp
-    spawn(["sudo", "-v"], {
-      stdin: "ignore",
-      stdout: "ignore",
-      stderr: "ignore",
-    });
-  }, KEEPALIVE_INTERVAL_MS);
-
-  // Unref the timer so it doesn't prevent the process from exiting
-  // when the main script finishes.
-  if (keepAliveTimer && typeof (keepAliveTimer as any).unref === "function") {
-    (keepAliveTimer as any).unref();
+  constructor(message: string, context: { stdout?: string; stderr?: string; exitCode?: number | null } = {}) {
+    super(message);
+    this.name = "BecomeError";
+    this.stdout = context.stdout ?? "";
+    this.stderr = context.stderr ?? "";
+    this.exitCode = context.exitCode ?? null;
   }
+}
+
+const DEFAULT_METHOD: BecomeMethod = "sudo";
+const DEFAULT_USER = "root";
+const DEFAULT_TIMEOUT = 30_000;
+
+// password to be used by default.
+// any caller can set it with setDefaultPassword but it can not be read.
+let defaultPassword: string | undefined;
+
+export async function sudo(command: string | string[], options: BecomeOptions = {}): Promise<BecomeResult> {
+  const method = options.method || DEFAULT_METHOD;
+  const user = options.user || DEFAULT_USER;
+  const timeout = options.timeout || DEFAULT_TIMEOUT;
+
+  // Prepare command string
+  const cmdString = Array.isArray(command) ? command.map(quoteArg).join(" ") : command;
+
+  const fullArgs = buildEscalationArgs(cmdString, method, user, options.flags);
+
+  return executeWithEscalation(fullArgs, method, options.password ?? defaultPassword, timeout, options.env);
+}
+
+export async function check(method: BecomeMethod = "sudo"): Promise<boolean> {
+  try {
+    const result = await sudo("true", { method, timeout: 5000 });
+    return result.success;
+  } catch {
+    return false;
+  }
+}
+
+// Sets the password to be used by default in all sudo calls
+// WARNING! Setting a default password will allow any caller to run commands with sudo.
+export function setDefaultPassword(password: string | undefined): void {
+  defaultPassword = password;
+}
+
+function quoteArg(arg: string): string {
+  if (/^[a-z0-9/_.-]+$/i.test(arg)) return arg;
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+function buildEscalationArgs(command: string, method: BecomeMethod, user: string, customFlags?: string[]): string[] {
+  switch (method) {
+    case "sudo":
+      return ["sudo", ...(customFlags || ["-H", "-S", "-p", ""]), "-u", user, "sh", "-c", command];
+    case "su":
+      return ["su", ...(customFlags || []), user, "-c", command];
+    case "doas":
+      return ["doas", ...(customFlags || []), "-u", user, "sh", "-c", command];
+    case "pkexec":
+      return ["pkexec", ...(customFlags || []), "--user", user, "sh", "-c", command];
+    default:
+      throw new BecomeError(`Unknown become method: ${method}`);
+  }
+}
+
+async function executeWithEscalation(
+  args: string[],
+  method: BecomeMethod,
+  password: string | undefined,
+  timeout: number,
+  env?: Record<string, string>,
+): Promise<BecomeResult> {
+  const [executable, ...cmdArgs] = args;
+  const inputBuffer = password ? new TextEncoder().encode(`${password}\n`) : undefined;
+
+  const proc = spawn([executable!, ...cmdArgs], {
+    stdin: inputBuffer ?? "ignore",
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, ...env },
+    timeout: timeout,
+  });
+
+  // Read streams immediately to prevent buffer filling
+  const stdoutPromise = proc.stdout.text();
+  const stderrPromise = proc.stderr.text();
+
+  const exitCode = await proc.exited;
+
+  const stdout = await stdoutPromise;
+  const stderr = await stderrPromise;
+
+  const cleanStderr = stripPasswordPrompt(stderr);
+
+  if (exitCode !== 0) {
+    // Check if it was a timeout (Bun kills with signal)
+    if (proc.signalCode === "SIGTERM") {
+      throw new BecomeError("Command execution timed out", { stdout, stderr: cleanStderr, exitCode });
+    }
+
+    checkCommonErrors(cleanStderr, stdout, method, exitCode);
+  }
+
+  return {
+    stdout: stdout.trim(),
+    stderr: cleanStderr,
+    exitCode,
+    success: exitCode === 0,
+  };
+}
+
+function checkCommonErrors(stderr: string, stdout: string, method: BecomeMethod, exitCode: number): void {
+  const combined = (stderr + stdout).toLowerCase();
+  const context = { stdout, stderr, exitCode };
+
+  if (combined.includes("incorrect password") || combined.includes("sorry, try again")) {
+    throw new BecomeError(`Incorrect ${method} password`, context);
+  }
+  if (combined.includes("password is required") || combined.includes("must provide a password")) {
+    throw new BecomeError(`${method} requires a password but none was provided`, context);
+  }
+  if (combined.includes("not in the sudoers file") || combined.includes("not allowed to execute")) {
+    throw new BecomeError(`User is not authorized to run commands with ${method}`, context);
+  }
+  if (combined.includes("unknown user") || combined.includes("does not exist")) {
+    throw new BecomeError("Target user does not exist", context);
+  }
+}
+
+function stripPasswordPrompt(output: string): string {
+  return output
+    .replace(/\[sudo\] password for .*?:/g, "")
+    .replace(/^Password:\s*/gm, "")
+    .trim();
 }
