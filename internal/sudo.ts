@@ -40,7 +40,14 @@ const DEFAULT_TIMEOUT = 30_000;
 // any caller can set it with setDefaultPassword but it can not be read.
 let defaultPassword: string | undefined;
 
+// Module must be explicitly enabled before use
+let isModuleEnabled = false;
+
 export async function sudo(command: string | string[], options: BecomeOptions = {}): Promise<BecomeResult> {
+  if (!isModuleEnabled) {
+    throw new BecomeError("sudo module must be enabled before use. Call enable() first.");
+  }
+
   const method = options.method || DEFAULT_METHOD;
   const user = options.user || DEFAULT_USER;
   const timeout = options.timeout || DEFAULT_TIMEOUT;
@@ -54,12 +61,31 @@ export async function sudo(command: string | string[], options: BecomeOptions = 
 }
 
 export async function check(method: BecomeMethod = "sudo"): Promise<boolean> {
+  if (!isModuleEnabled) {
+    throw new BecomeError("sudo module must be enabled before use. Call enable() first.");
+  }
+
   try {
     const result = await sudo("true", { method, timeout: 5000 });
     return result.success;
   } catch {
     return false;
   }
+}
+
+// Enables the sudo module for use
+export function enable(): void {
+  isModuleEnabled = true;
+}
+
+// Disables the sudo module, preventing further use
+export function disable(): void {
+  isModuleEnabled = false;
+}
+
+// Returns whether the sudo module is currently enabled
+export function isEnabled(): boolean {
+  return isModuleEnabled;
 }
 
 // Sets the password to be used by default in all sudo calls
