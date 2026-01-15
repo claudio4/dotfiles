@@ -1,4 +1,4 @@
-import { install, refresh } from "internal/package-manager";
+import { install, installWithSystemPackageManager, refresh } from "internal/package-manager";
 import type { PackageDefinition } from "internal/package-manager/manager";
 import { BaseTask } from "internal/task";
 
@@ -24,7 +24,7 @@ class BuildEssentialsTask extends BaseTask {
   override id = "BuildEssentials";
   override _execute(): Promise<void> {
     this.setMessage("Installing build essentials...");
-    return install(buildPackages);
+    return installWithSystemPackageManager(buildPackages);
   }
 }
 
