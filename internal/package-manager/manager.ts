@@ -20,6 +20,24 @@ export interface PackageManager {
   refresh(): Promise<void>;
 }
 
+export class PackageManagerError extends Error {
+  public readonly stdout: string;
+  public readonly stderr: string;
+
+  constructor(message: string, context: { stdout?: string; stderr?: string } = {}) {
+    super(message);
+    this.name = "InstallError";
+    this.stdout = context.stdout ?? "";
+    this.stderr = context.stderr ?? "";
+  }
+}
+
+interface executeOutput {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
 function hasRootprivileges(): boolean {
   return (process as any).getuid() === 0;
 }
@@ -41,11 +59,18 @@ abstract class BasePackageManager implements PackageManager {
     return pkg[this.type] || pkg.default;
   }
 
-  protected execute(cmd: string[]): Promise<number> {
+  protected async execute(cmd: string[]): Promise<executeOutput> {
     if (this.needsSudo && !hasRootprivileges()) {
-      return sudo(cmd).then((r) => r.exitCode);
+      return sudo(cmd, { timeout: 300000 }); // timeout of 5 mins
     }
-    return spawn(cmd).exited;
+    let proc = spawn(cmd, {
+      stderr: "pipe",
+    });
+    return {
+      exitCode: await proc.exited,
+      stdout: await proc.stdout.text(),
+      stderr: await proc.stderr.text(),
+    };
   }
 
   async install(packages: PackageDefinition[]): Promise<void> {
@@ -57,10 +82,13 @@ abstract class BasePackageManager implements PackageManager {
 
     const resolvedNames = packages.map((p) => this.resolveName(p));
     const cmd = [...this.installCommand, ...resolvedNames];
-    const exitCode = await this.execute(cmd);
+    const result = await this.execute(cmd);
 
-    if (exitCode !== 0) {
-      throw new Error(`${this.type} failed when installing packages ${resolvedNames.concat()}`);
+    if (result.exitCode !== 0) {
+      throw new PackageManagerError(`${this.type} failed when installing packages ${resolvedNames.concat()}:`, {
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
     }
   }
 
@@ -68,9 +96,12 @@ abstract class BasePackageManager implements PackageManager {
     // Some managers (like winget) might not need an explicit update command or it's different
     if (this.updateCommand.length === 0) return;
 
-    const exitCode = await this.execute(this.updateCommand);
-    if (exitCode !== 0) {
-      throw new Error(`${this.type} failed when refreshing`);
+    const result = await this.execute(this.updateCommand);
+    if (result.exitCode !== 0) {
+      throw new PackageManagerError(`${this.type} failed when refreshing`, {
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
     }
     this.hasRerefreshed = true;
   }
