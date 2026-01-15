@@ -29,6 +29,9 @@ abstract class BasePackageManager implements PackageManager {
   protected abstract readonly installCommand: string[];
   protected abstract readonly updateCommand: string[];
   protected abstract readonly needsSudo: boolean;
+  protected abstract readonly needsRefresh: boolean;
+
+  protected hasRerefreshed: boolean = false;
 
   /**
    * Helper to resolve the specific package name from the definition
@@ -48,6 +51,10 @@ abstract class BasePackageManager implements PackageManager {
   async install(packages: PackageDefinition[]): Promise<void> {
     if (packages.length === 0) return;
 
+    if (this.needsRefresh && !this.hasRerefreshed) {
+      await this.refresh();
+    }
+
     const resolvedNames = packages.map((p) => this.resolveName(p));
     const cmd = [...this.installCommand, ...resolvedNames];
     const exitCode = await this.execute(cmd);
@@ -65,6 +72,7 @@ abstract class BasePackageManager implements PackageManager {
     if (exitCode !== 0) {
       throw new Error(`${this.type} failed when refreshing`);
     }
+    this.hasRerefreshed = true;
   }
 }
 
@@ -72,6 +80,7 @@ export class AptManager extends BasePackageManager {
   protected installCommand = ["apt-get", "install", "-y"];
   protected updateCommand = ["apt-get", "update", "-y"];
   protected needsSudo = true;
+  protected needsRefresh = true;
   readonly type = "apt";
 }
 
@@ -79,6 +88,7 @@ export class DnfManager extends BasePackageManager {
   protected installCommand = ["dnf", "install", "-y"];
   protected updateCommand = ["dnf", "check-update", "-y"];
   protected needsSudo = true;
+  protected needsRefresh = false;
   readonly type = "dnf";
 }
 
@@ -86,6 +96,7 @@ export class ZypperManager extends BasePackageManager {
   protected installCommand = ["zypper", "install", "-y"];
   protected updateCommand = ["zypper", "refresh"];
   protected needsSudo = true;
+  protected needsRefresh = false;
   readonly type = "zypper";
 }
 
@@ -93,6 +104,7 @@ export class PacmanManager extends BasePackageManager {
   protected installCommand = ["pacman", "-S", "--noconfirm"];
   protected updateCommand = ["pacman", "-Sy", "--noconfirm"];
   protected needsSudo = true;
+  protected needsRefresh = true;
   readonly type = "pacman";
 }
 
@@ -100,6 +112,7 @@ export class BrewManager extends BasePackageManager {
   protected installCommand = ["brew", "install"];
   protected updateCommand = ["brew", "update"];
   protected needsSudo = false;
+  protected needsRefresh = false;
   readonly type = "brew";
 }
 
@@ -113,6 +126,7 @@ export class WingetManager extends BasePackageManager {
   ];
   protected updateCommand = [];
   protected needsSudo = false;
+  protected needsRefresh = false;
   readonly type = "winget";
 }
 
