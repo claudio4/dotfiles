@@ -84,7 +84,6 @@ export class ProfileDisplay {
   private isActive: boolean = false;
   private startTime: number = 0;
   private terminalWidth: number;
-  private resizeHandler: (() => void) | null = null;
   private redrawTimer: Timer | null = null;
   private pendingRedraw: boolean = false;
 
@@ -110,7 +109,7 @@ export class ProfileDisplay {
     // Hide cursor for cleaner output
     if (this.options.fancy) {
       process.stdout.write(ANSI.HIDE_CURSOR);
-      this.redrawTimer = setImmediate(() => {
+      this.redrawTimer = setInterval(() => {
         if (this.isActive) {
           this.draw();
         }
