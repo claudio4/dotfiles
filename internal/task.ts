@@ -149,6 +149,11 @@ export interface Task {
    * @returns true if the listener was removed, false if it was not found
    */
   removeStatusListener(listener: TaskStatusListener): boolean;
+
+  /**
+   * Optional settings for the task. They are task dependant.
+   */
+  options?: Record<string, any>;
 }
 
 /**

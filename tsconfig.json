@@ -9,7 +9,8 @@
 
     "paths": {
       "internal/*": ["./internal/*"],
-      "tasks/*": ["./tasks/*"]
+      "tasks/*": ["./tasks/*"],
+      "profiles/*": ["./profiles/*"]
     },
 
     // Bundler mode

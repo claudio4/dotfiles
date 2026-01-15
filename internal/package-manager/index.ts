@@ -1,6 +1,6 @@
 import { getSystemPackageManager, type PackageDefinition, type PackageManager, CachedPackageManager } from "./manager";
 
-const systemPkgManager = getCachedSystemPackageManagerOrFailed();
+let systemPkgManager = getCachedSystemPackageManagerOrFailed();
 let defaultPkgManager = systemPkgManager;
 
 /**
@@ -43,6 +43,14 @@ export function refreshWithSystemPackageManager(): Promise<void> {
  */
 export function overrideDefaultPackageManager(pm: PackageManager) {
   defaultPkgManager = pm;
+}
+
+/**
+ * Overrides the system package manager used by `installWithSystemPackageManager()` and `refreshWithSystemPackageManager()`.
+ * This allows substituting a custom package manager implementation for system package manager tasks.
+ */
+export function overrideSystemPackageManager(pm: PackageManager) {
+  systemPkgManager = pm;
 }
 
 function getCachedSystemPackageManagerOrFailed(): PackageManager {

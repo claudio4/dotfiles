@@ -1,19 +1,22 @@
 import type { Task, TaskStatusListener } from "./task";
 
-export interface ProfileConfig {
+export interface ProfileConfig<O> {
   name: string;
   description?: string;
+  options?: O;
 }
 
-export class Profile {
+export class Profile<O> {
   readonly name: string;
   readonly description?: string;
   tasks: Task[];
+  options?: O;
 
-  constructor(config: ProfileConfig) {
+  constructor(config: ProfileConfig<O>) {
     this.name = config.name;
     this.description = config.description;
     this.tasks = [];
+    this.options = config.options;
   }
 
   /**
