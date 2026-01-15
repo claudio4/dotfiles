@@ -7,7 +7,7 @@ import { Profile } from "./internal/profile";
 import { runProfileWithDisplay } from "./internal/display";
 import * as sudo from "./internal/sudo";
 import * as packageManager from "./internal/package-manager";
-import type { PackageDefinition, PackageManager } from "internal/package-manager/manager";
+import type { PackageManager } from "internal/package-manager/manager";
 
 /**
  * CLI configuration parsed from arguments and environment variables
@@ -37,8 +37,8 @@ function parseCliConfig(): CLIConfig {
     args,
     options: {
       profile: { type: "string", short: "p" },
-      sudo: { type: "boolean" },
-      "sudo-password": { type: "string" },
+      sudo: { type: "boolean", short: "s" },
+      "sudo-password": { type: "string", short: "S" },
       "disable-package-manager": { type: "boolean" },
       ignore: { type: "string", multiple: true, short: "i" },
       "profile-option": { type: "string", multiple: true, short: "P" },
@@ -191,8 +191,8 @@ ARGUMENTS:
 
 OPTIONS:
   -p, --profile <NAME>       Select profile by name
-  --sudo                     Enable sudo/privilege escalation
-  --sudo-password <PASS>     Provide sudo password (also enables sudo)
+  -s, --sudo                 Enable sudo/privilege escalation
+  -S, --sudo-password <PASS> Provide sudo password (also enables sudo)
   --disable-package-manager  Disable system package manager
   -i, --ignore <TASK>        Ignore specific task(s) - can be used multiple times
   -P, --profile-option <OPT> Pass option to profile (format: key=value)
@@ -318,8 +318,8 @@ async function main(): Promise<void> {
   await runProfileWithDisplay(profile);
 
   // Check if any tasks failed
-  const failedTasks = profile.tasks.filter((t) => t.status === "failed");
-  if (failedTasks.length > 0) {
+  const failedTask = profile.tasks.find((t) => t.status === "failed");
+  if (failedTask) {
     process.exit(1);
   }
 }
