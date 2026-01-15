@@ -6,7 +6,7 @@ export interface ProfileConfig<O> {
   options?: O;
 }
 
-export class Profile<O> {
+export class Profile<O = undefined> {
   readonly name: string;
   readonly description?: string;
   tasks: Task[];
