@@ -1,4 +1,5 @@
 import { which, spawn } from "bun";
+import { sudo } from "internal/sudo";
 
 export type ManagerType = "apt" | "dnf" | "zypper" | "pacman" | "brew" | "winget";
 
@@ -38,15 +39,7 @@ abstract class BasePackageManager implements PackageManager {
   }
 
   protected execute(cmd: string[]): Promise<number> {
-    if (this.needsSudo && !hasRootprivileges()) {
-      cmd.unshift("sudo");
-    }
-
-    const proc = spawn(cmd, {
-      stdout: "inherit",
-      stderr: "inherit",
-      stdin: "inherit",
-    });
+    const proc = this.needsSudo && !hasRootprivileges() ? sudo(cmd) : spawn(cmd);
 
     return proc.exited;
   }

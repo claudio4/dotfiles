@@ -5,6 +5,7 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "allowJs": true,
+    "types": ["node", "bun"],
 
     "paths": {
       "internal/*": ["./internal/*"],
