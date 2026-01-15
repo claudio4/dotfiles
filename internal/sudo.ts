@@ -173,7 +173,7 @@ function checkCommonErrors(stderr: string, stdout: string, method: BecomeMethod,
   if (combined.includes("not in the sudoers file") || combined.includes("not allowed to execute")) {
     throw new BecomeError(`User is not authorized to run commands with ${method}`, context);
   }
-  if (combined.includes("unknown user") || combined.includes("does not exist")) {
+  if (combined.includes("unknown user")) {
     throw new BecomeError("Target user does not exist", context);
   }
 }
