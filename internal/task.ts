@@ -6,6 +6,8 @@ export enum TaskStatus {
   Unregistered = "unregistered",
   /** Task has not started yet */
   Pending = "pending",
+  /** Task is waiting for a dependency to complete */
+  Waiting = "waiting",
   /** Task is currently running */
   Running = "running",
   /** Task completed successfully */
@@ -352,6 +354,7 @@ export abstract class BaseTask implements Task {
     }
 
     try {
+      this.updateStatus(TaskStatus.Waiting, "Waiting for task " + task.id);
       await task.run();
     } catch (err) {
       if (err instanceof TaskSkippedError && optional) {
@@ -364,6 +367,8 @@ export abstract class BaseTask implements Task {
       }
 
       throw err;
+    } finally {
+      this.updateStatus(TaskStatus.Running);
     }
   }
 }
