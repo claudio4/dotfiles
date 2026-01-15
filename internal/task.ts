@@ -377,3 +377,13 @@ export abstract class BaseTask implements Task {
     }
   }
 }
+
+export async function isTaskRegistered(taskId: string): Promise<boolean> {
+  try {
+    const module = await import(`tasks/${taskId}.ts`);
+    if (!module?.default?.getInfo) return false;
+    return module.default.getInfo().status !== TaskStatus.Unregistered;
+  } catch (err) {
+    return false;
+  }
+}
