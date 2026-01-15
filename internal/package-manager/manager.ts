@@ -246,7 +246,7 @@ export class QueuedPackageManager implements PackageManager {
  *
  */
 export class CachedPackageManager implements PackageManager {
-  private readonly _queue: QueuedPackageManager;
+  readonly _queue: QueuedPackageManager;
 
   // Tracks packages successfully installed in this session
   private readonly _installed = new Set<string>();
