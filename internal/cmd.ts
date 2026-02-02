@@ -1,4 +1,4 @@
-import { isTaskRegistered, TaskStatus } from "./task";
+import { isTaskRegistered } from "./task";
 import type { Spawn } from "bun";
 
 /**

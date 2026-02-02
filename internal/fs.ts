@@ -4,6 +4,7 @@ import { stat } from "fs/promises";
 import { chown as fsChown } from "fs/promises";
 import { spawn } from "bun";
 import { sudo, isEnabled as isSudoEnabled } from "internal/sudo";
+import { resolveGroupId, resolveUserId } from "./user";
 
 export interface MkdirOptions {
   /**
@@ -72,64 +73,6 @@ function parseOwner(owner: string): { user?: string; group?: string } {
     // Only user specified: "user"
     return { user: owner };
   }
-}
-
-/**
- * Resolve username to uid using the id command
- */
-async function resolveUserId(username: string): Promise<number> {
-  // Check if it's already a numeric uid
-  const numericUid = parseInt(username, 10);
-  if (!isNaN(numericUid)) {
-    return numericUid;
-  }
-
-  const proc = spawn({
-    cmd: ["id", "-u", username],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  const output = await new Response(proc.stdout).text();
-  const exitCode = await proc.exited;
-
-  if (exitCode !== 0) {
-    throw new Error(`Failed to resolve user '${username}' to uid`);
-  }
-
-  return parseInt(output.trim(), 10);
-}
-
-/**
- * Resolve groupname to gid using the id command
- */
-async function resolveGroupId(groupname: string): Promise<number> {
-  // Check if it's already a numeric gid
-  const numericGid = parseInt(groupname, 10);
-  if (!isNaN(numericGid)) {
-    return numericGid;
-  }
-
-  const proc = spawn({
-    cmd: ["getent", "group", groupname],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  const output = await new Response(proc.stdout).text();
-  const exitCode = await proc.exited;
-
-  if (exitCode !== 0) {
-    throw new Error(`Failed to resolve group '${groupname}' to gid`);
-  }
-
-  // getent group format: groupname:x:gid:members
-  const parts = output.trim().split(":");
-  if (parts.length < 3) {
-    throw new Error(`Invalid getent output for group '${groupname}'`);
-  }
-
-  return parseInt(parts[2]!, 10);
 }
 
 /**
