@@ -1,4 +1,4 @@
-import { commandExists, commandOrTaskRegistered, which } from "internal/cmd";
+import { which } from "internal/cmd";
 import { BaseTask, getTask, isTaskRegistered, TaskStatus } from "internal/task";
 import { compileTemplateFromFile } from "internal/template";
 import { getConfigHome, getHome } from "internal/user";

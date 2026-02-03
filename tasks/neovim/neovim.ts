@@ -1,7 +1,7 @@
 import { commandExists } from "internal/cmd";
 import { mkdir } from "internal/fs";
 import { gitClone } from "internal/git-clone";
-import { install, installWithSystemPackageManager } from "internal/package-manager";
+import { install, InstallPriority, installWithSystemPackageManager } from "internal/package-manager";
 import { BaseTask } from "internal/task";
 import { getConfigHome } from "internal/user";
 import { markAsErrorHandled } from "internal/utils";
@@ -12,7 +12,7 @@ class NeovimTask extends BaseTask {
   override async _execute(): Promise<void> {
     let installPromise: Promise<void> | undefined;
     if (!commandExists("nvim")) {
-      installPromise = install(["neovim"]);
+      installPromise = install(["neovim"], InstallPriority.BACKGROUND);
       markAsErrorHandled(installPromise);
     }
     await mkdir(getConfigHome());

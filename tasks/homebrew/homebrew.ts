@@ -1,9 +1,14 @@
-import { which } from "bun";
-import { addToCurrentPATH, commandExists, commandOrTaskRegistered, spawn } from "internal/cmd";
+import { addToCurrentPATH, commandExists, spawn } from "internal/cmd";
 import { mkdir } from "internal/fs";
 import { gitClone } from "internal/git-clone";
 import { installWithSystemPackageManager, overrideDefaultPackageManager } from "internal/package-manager";
-import { BrewManager, CachedPackageManager } from "internal/package-manager/manager";
+import {
+  BrewManager,
+  CachedPackageManager,
+  InstallPriority,
+  type PackageDefinition,
+  type PackageManager,
+} from "internal/package-manager/manager";
 import { BaseTask, TaskStatus } from "internal/task";
 
 class HomebrewTask extends BaseTask {
@@ -12,7 +17,9 @@ class HomebrewTask extends BaseTask {
     homebrewPath: "/home/linuxbrew/.linuxbrew",
     homebrewUrl: "https://github.com/Homebrew/brew.git",
   };
-  private packageMngrQueueResolveFunction?: () => void;
+
+  pm?: CachedPackageManager;
+  private unlockPM?: () => void;
 
   /*
    * Registers the tasks and also sets homebrew as the default package manager.
@@ -21,11 +28,29 @@ class HomebrewTask extends BaseTask {
   override register(): void {
     if (this.status !== TaskStatus.Unregistered) return;
     this.updateStatus(TaskStatus.Pending);
+
+    // we create a new package manager to overwrite the defaut one
     const pm = new CachedPackageManager(new BrewManager());
-    pm._queue._workerChain = new Promise((resolve) => {
-      this.packageMngrQueueResolveFunction = resolve;
+    this.pm = pm;
+
+    // we need to block installations until we are done, otherwise homebrew will
+    // not be available, this promise does just that and by resolving it we allow
+    // installations to go through
+    const lockingPromise = new Promise((resolve) => {
+      this.unlockPM = resolve as () => {};
     });
-    overrideDefaultPackageManager(pm);
+
+    const wrapperPm: PackageManager = {
+      type: "brew",
+      install(packages: PackageDefinition[], priority?: number) {
+        return lockingPromise.then(() => pm.install(packages, priority));
+      },
+      refresh(priority?: number) {
+        return lockingPromise.then(() => pm.refresh(priority));
+      },
+    };
+
+    overrideDefaultPackageManager(wrapperPm);
   }
 
   async _executeInternal(): Promise<void> {
@@ -36,7 +61,7 @@ class HomebrewTask extends BaseTask {
 
     if (!commandExists("git")) {
       this.setMessage("Install git");
-      await installWithSystemPackageManager(["git"]);
+      await installWithSystemPackageManager(["git"], InstallPriority.BLOCKING);
     }
 
     this.setMessage("Clone repository");
@@ -55,7 +80,12 @@ class HomebrewTask extends BaseTask {
 
   override _execute(): Promise<void> {
     return this._executeInternal().finally(() => {
-      this.packageMngrQueueResolveFunction?.();
+      this.unlockPM?.();
+      if (this.pm) {
+        // we no longer need our wrapper holding installs
+        // so we let the real pm to handle the installs from now on.
+        overrideDefaultPackageManager(this.pm);
+      }
     });
   }
 }

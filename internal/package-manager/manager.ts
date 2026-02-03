@@ -12,12 +12,30 @@ export type PackageDefinition = string | (Partial<Record<ManagerType, string>> &
 export interface PackageManager {
   readonly type: ManagerType;
 
-  install(packages: PackageDefinition[]): Promise<void>;
+  install(packages: PackageDefinition[], priority?: number): Promise<void>;
 
   /**
    * Updates the package manager repositories (e.g. apt-get update)
    */
-  refresh(): Promise<void>;
+  refresh(priority?: number): Promise<void>;
+}
+
+/**
+ * Priority levels for package installation.
+ * Higher values are processed first.
+ */
+export enum InstallPriority {
+  /** Low priority - install when convenient, nothing is waiting for it */
+  BACKGROUND = -100,
+
+  /** Normal priority - default for regular package installations */
+  NORMAL = 0,
+
+  /** High priority - installation needed to keep system/application working */
+  REQUIRED = 100,
+
+  /** Critical priority - blocking long-running async operations, needs immediate installation */
+  BLOCKING = 500,
 }
 
 export class PackageManagerError extends Error {
@@ -181,83 +199,47 @@ export function getSystemPackageManager(): PackageManager {
 
   throw new Error("No supported package manager found.");
 }
-
 /**
- * Wraps an PackageManager to ensure operations are executed sequentially.
- * If multiple callers call install(), they are queued.
- * Callers can await their specific request.
+ * A task in the priority queue
  */
-
-export class QueuedPackageManager implements PackageManager {
-  _workerChain: Promise<void> = Promise.resolve();
-  private refreshPromise?: Promise<void>;
-
-  constructor(readonly _delegate: PackageManager) {}
-
-  get type(): ManagerType {
-    return this._delegate.type;
-  }
-
-  private enqueue<T>(task: () => Promise<T>): Promise<T> {
-    // We create a new promise that waits for the previous one to finish (success or fail)
-    // and then runs the current task.
-    const resultPromise = this._workerChain.then(async () => {
-      return task();
-    });
-
-    // We update the chain tail.
-    // We catch errors here so the NEXT task in line still runs even if this one fails.
-    this._workerChain = resultPromise.catch(() => {}) as Promise<void>;
-
-    return resultPromise;
-  }
-
-  /**
-   * Installs the requested packages.
-   * If multiple callers call install(), they are queued.
-   */
-  install(packages: PackageDefinition[]): Promise<void> {
-    return this.enqueue(() => this._delegate.install(packages));
-  }
-
-  /**
-   * Refreshes the package manager's cache.
-   * This method ensures that only one refresh operation is in progress at any given time.
-   */
-  refresh(): Promise<void> {
-    if (this.refreshPromise === undefined) {
-      this.refreshPromise = this.enqueue(() => this._delegate.refresh());
-      return this.refreshPromise;
-    }
-    const current = Bun.peek(this.refreshPromise);
-    // if its the same then it means that a refresh requesh is already in queue or in-flight.
-    if (current === this.refreshPromise) return this.refreshPromise;
-
-    this.refreshPromise = this.enqueue(() => this._delegate.refresh());
-    return this.refreshPromise;
-  }
+interface QueuedTask {
+  packages: string[];
+  refresh?: boolean;
+  priority: number;
+  resolve: () => void;
+  reject: (error: Error) => void;
 }
 
 /**
- * Wraps a PackageManager to add Deduplication and Caching.
- *
- * 1. Checks if a package is already installed (returns immediately).
- * 2. Checks if a package is currently being installed by another task (returns that existing promise).
- * 3. Only enqueues ACTUAL new installations to the underlying worker.
- *
+ * Tracks an inflight installation with its current maximum priority
+ */
+interface InflightInstall {
+  promise: Promise<void>;
+  task: QueuedTask;
+}
+
+/**
+ * Wraps a PackageManager to add:
+ *  Priority-based queuing (higher priority tasks are processed first)
+ *  Deduplication (same package requested multiple times uses the same installation)
+ *  Caching (already installed packages are not reinstalled)
+ *  Priority updates (if a package is inflight and requested with higher priority, its priority is updated)
  */
 export class CachedPackageManager implements PackageManager {
-  readonly _queue: QueuedPackageManager;
-
   // Tracks packages successfully installed in this session
   private readonly _installed = new Set<string>();
 
-  // Tracks packages currently in the queue or running
-  private readonly _inflight = new Map<string, Promise<void>>();
+  // Tracks packages currently being installed with their max priority
+  private readonly _inflight = new Map<string, InflightInstall>();
 
-  constructor(private readonly _delegate: PackageManager) {
-    this._queue = new QueuedPackageManager(_delegate);
-  }
+  // Priority queue of pending tasks
+  private readonly _queue: QueuedTask[] = [];
+
+  // Worker processing state
+  private _processing = false;
+  private _refreshTask?: { promise: Promise<void>; task: QueuedTask };
+
+  constructor(private readonly _delegate: PackageManager) {}
 
   get type(): ManagerType {
     return this._delegate.type;
@@ -271,7 +253,7 @@ export class CachedPackageManager implements PackageManager {
     return pkg[this._delegate.type] || pkg.default;
   }
 
-  async install(packages: PackageDefinition[]): Promise<void> {
+  async install(packages: PackageDefinition[], priority: number = 0): Promise<void> {
     if (packages.length === 0) return;
 
     const resolvedNames = packages.map((p) => this.resolveName(p));
@@ -279,42 +261,157 @@ export class CachedPackageManager implements PackageManager {
     const brandNewPackages: string[] = [];
     const waitingPromises: Promise<void>[] = [];
 
+    let needsResort = false;
     for (const name of resolvedNames) {
       if (this._installed.has(name)) {
         continue;
       }
 
+      // Currently being installed
       if (this._inflight.has(name)) {
-        waitingPromises.push(this._inflight.get(name)!);
+        const inflight = this._inflight.get(name)!;
+
+        if (priority > inflight.task.priority) {
+          inflight.task.priority = priority;
+          needsResort = true;
+        }
+
+        waitingPromises.push(inflight.promise);
         continue;
       }
 
       brandNewPackages.push(name);
     }
 
-    if (brandNewPackages.length > 0) {
-      const installTask = this._queue
-        .install(brandNewPackages)
-        .then(() => {
-          // On success, mark as installed
-          brandNewPackages.forEach((n) => this._installed.add(n));
-        })
-        .finally(() => {
-          // Whether success or fail, remove from inflight so they can be retried if needed
-          brandNewPackages.forEach((n) => this._inflight.delete(n));
-        });
+    if (needsResort) this._resortQueue();
 
-      brandNewPackages.forEach((name) => {
-        this._inflight.set(name, installTask);
+    // If we have new packages to install, add them to the queue
+    if (brandNewPackages.length > 0) {
+      const task: Partial<QueuedTask> = {
+        packages: brandNewPackages,
+        priority,
+      };
+
+      const installPromise = new Promise<void>((resolve, reject) => {
+        // this is safe because the promise will not be resolved before we insert it in the queue
+        task.resolve = resolve;
+        task.reject = reject;
+
+        this._insertAtPriority(task as QueuedTask);
+
+        // Untie the qeue processing to this task.
+        setImmediate(() => this._processQueue());
       });
 
-      waitingPromises.push(installTask);
+      const inflightEntry: InflightInstall = {
+        promise: installPromise,
+        // for aa brief period of time this task misses some properties but
+        // inflightEntry only needs Priority anyway
+        task: task as QueuedTask,
+      };
+
+      brandNewPackages.forEach((name) => {
+        this._inflight.set(name, inflightEntry);
+      });
+
+      waitingPromises.push(installPromise);
     }
 
     await Promise.all(waitingPromises);
   }
 
-  async refresh(): Promise<void> {
-    return this._queue.refresh();
+  /**
+   * Inserts a task into the queue at the appropriate posiition given its priority
+   */
+  private _insertAtPriority(task: QueuedTask) {
+    let insertIndex = this._queue.length;
+    for (let i = 0; i < this._queue.length; i++) {
+      if (task.priority > this._queue[i]!.priority) {
+        insertIndex = i;
+        break;
+      }
+    }
+
+    this._queue.splice(insertIndex, 0, task);
+  }
+
+  /**
+   * Resorts the queue when priorities are updated
+   */
+  private _resortQueue(): void {
+    // Stable sort by priority (descending)
+    this._queue.sort((a, b) => b.priority - a.priority);
+  }
+
+  /**
+   * Processes tasks from the queue, highest priority first
+   */
+  private async _processQueue(): Promise<void> {
+    if (this._processing) return;
+    this._processing = true;
+
+    while (this._queue.length > 0) {
+      // Get highest priority task (first in queue)
+      const task = this._queue.shift()!;
+
+      try {
+        if (task.refresh) {
+          await this._delegate.refresh();
+          this._refreshTask = undefined;
+        }
+
+        await this._delegate.install(task.packages);
+
+        // Mark as installed
+        task.packages.forEach((name) => {
+          this._installed.add(name);
+          this._inflight.delete(name);
+        });
+
+        task.resolve();
+      } catch (error) {
+        if (task.refresh) {
+          this._refreshTask = undefined;
+        }
+
+        // Remove from inflight so they can be retried
+        task.packages.forEach((name) => this._inflight.delete(name));
+
+        task.reject(error as Error);
+      }
+    }
+
+    this._processing = false;
+  }
+
+  /**
+   * Refreshes the package manager's cache.
+   * This method ensures that only one refresh operation is in progress at any given time.
+   */
+  async refresh(priority: number = 0): Promise<void> {
+    if (this._refreshTask) {
+      if (this._refreshTask.task.priority > priority) {
+        this._refreshTask.task.priority = priority;
+        this._resortQueue();
+      }
+
+      return this._refreshTask.promise;
+    }
+
+    const task: Partial<QueuedTask> = {
+      refresh: true,
+      packages: [],
+      priority,
+    };
+
+    this._refreshTask = {
+      promise: new Promise((resolve, reject) => {
+        task.reject = reject;
+        task.resolve = resolve;
+        this._insertAtPriority(task as QueuedTask);
+        setImmediate(() => this._processQueue());
+      }),
+      task: task as QueuedTask,
+    };
   }
 }

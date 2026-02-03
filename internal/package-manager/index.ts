@@ -1,4 +1,5 @@
 import { getSystemPackageManager, type PackageDefinition, type PackageManager, CachedPackageManager } from "./manager";
+export { InstallPriority, type PackageDefinition } from "./manager";
 
 let systemPkgManager = getCachedSystemPackageManagerOrFailed();
 let defaultPkgManager = systemPkgManager;
@@ -7,16 +8,16 @@ let defaultPkgManager = systemPkgManager;
  * Installs packages using the default package manager.
  * The default package manager is initially the system package manager but can be overridden.
  */
-export function install(packages: PackageDefinition[]): Promise<void> {
-  return defaultPkgManager.install(packages);
+export function install(packages: PackageDefinition[], priority: number = 0): Promise<void> {
+  return defaultPkgManager.install(packages, priority);
 }
 
 /**
  * Refreshes the package index using the default package manager.
  * The default package manager is initially the system package manager but can be overridden.
  */
-export function refresh(): Promise<void> {
-  return defaultPkgManager.refresh();
+export function refresh(priority: number = 0): Promise<void> {
+  return defaultPkgManager.refresh(priority);
 }
 
 /**
@@ -24,8 +25,8 @@ export function refresh(): Promise<void> {
  * Use this when you need to ensure installation happens through the system package manager
  * regardless of any custom package manager configuration.
  */
-export function installWithSystemPackageManager(packages: PackageDefinition[]): Promise<void> {
-  return systemPkgManager.install(packages);
+export function installWithSystemPackageManager(packages: PackageDefinition[], priority: number = 0): Promise<void> {
+  return systemPkgManager.install(packages, priority);
 }
 
 /**
@@ -33,8 +34,8 @@ export function installWithSystemPackageManager(packages: PackageDefinition[]): 
  * Use this when you need to ensure refresh happens through the system package manager
  * regardless of any custom package manager configuration.
  */
-export function refreshWithSystemPackageManager(): Promise<void> {
-  return systemPkgManager.refresh();
+export function refreshWithSystemPackageManager(priority: number = 0): Promise<void> {
+  return systemPkgManager.refresh(priority);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { commandExists } from "internal/cmd";
 import { ensureLine, mkdir } from "internal/fs";
-import { install } from "internal/package-manager";
+import { install, InstallPriority } from "internal/package-manager";
 import { BaseTask } from "internal/task";
 import { getDataHome, getHome } from "internal/user";
 import { isUnixLike, markAsErrorHandled } from "internal/utils";
@@ -15,7 +15,7 @@ class GoTask extends BaseTask {
   override async _execute(): Promise<void> {
     let installPromise;
     if (!commandExists("go")) {
-      installPromise = install([{ apt: "golang-go", dnf: "golang", default: "go" }]);
+      installPromise = install([{ apt: "golang-go", dnf: "golang", default: "go" }], InstallPriority.BACKGROUND);
       markAsErrorHandled(installPromise);
     }
 

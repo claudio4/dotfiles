@@ -1,6 +1,6 @@
 import { commandExists } from "internal/cmd";
 import { copy } from "internal/fs";
-import { installWithSystemPackageManager } from "internal/package-manager";
+import { InstallPriority, installWithSystemPackageManager } from "internal/package-manager";
 import { BaseTask } from "internal/task";
 import { getConfigHome } from "internal/user";
 import { markAsErrorHandled } from "internal/utils";
@@ -11,7 +11,8 @@ class GitTask extends BaseTask {
   override async _execute(): Promise<void> {
     let installPromise;
     if (!commandExists("git")) {
-      installPromise = installWithSystemPackageManager(["git"]);
+      // here it isn't blockign anything, but in most places it is.
+      installPromise = installWithSystemPackageManager(["git"], InstallPriority.BLOCKING);
       markAsErrorHandled(installPromise);
     }
 
