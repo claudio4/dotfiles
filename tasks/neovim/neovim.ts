@@ -12,7 +12,7 @@ class NeovimTask extends BaseTask {
   override async _execute(): Promise<void> {
     let installPromise: Promise<void> | undefined;
     if (!commandExists("nvim")) {
-      installPromise = install(["nvim"]);
+      installPromise = install(["neovim"]);
       markAsErrorHandled(installPromise);
     }
     await mkdir(getConfigHome());
