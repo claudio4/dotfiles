@@ -69,6 +69,8 @@ export function getStateHome(): string {
   return join(homedir(), ".local", "state");
 }
 
+export const getHome = homedir;
+
 /**
  * Returns the current user's name.
  * Priority: System User Info -> $USER -> $USERNAME -> "unknown"

@@ -65,6 +65,7 @@ abstract class BasePackageManager implements PackageManager {
     }
     let proc = spawn(cmd, {
       stderr: "pipe",
+      env: process.env,
     });
     return {
       exitCode: await proc.exited,
