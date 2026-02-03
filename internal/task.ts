@@ -378,11 +378,15 @@ export abstract class BaseTask implements Task {
   }
 }
 
+export function getTask(taskId: string): Promise<Task | undefined> {
+  return import(`tasks/${taskId}/${taskId}.ts`).then((m) => m.default);
+}
+
 export async function isTaskRegistered(taskId: string): Promise<boolean> {
   try {
-    const module = await import(`tasks/${taskId}.ts`);
-    if (!module?.default?.getInfo) return false;
-    return module.default.getInfo().status !== TaskStatus.Unregistered;
+    const task = await getTask(taskId);
+    if (!task?.getInfo) return false;
+    return task.getInfo().status !== TaskStatus.Unregistered;
   } catch (err) {
     return false;
   }

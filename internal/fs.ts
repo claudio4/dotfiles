@@ -1,4 +1,4 @@
-import { exists, readFile, writeFile } from "fs/promises";
+import { cp, exists, readFile, writeFile } from "fs/promises";
 import { mkdir as fsMkdir } from "fs/promises";
 import { stat } from "fs/promises";
 import { chown as fsChown } from "fs/promises";
@@ -6,6 +6,158 @@ import { spawn } from "bun";
 import { sudo, isEnabled as isSudoEnabled } from "internal/sudo";
 import { resolveGroupId, resolveUserId } from "./user";
 import { isUnixLike } from "./utils";
+
+export interface CopyOptions {
+  /**
+   * If true, allows using sudo/elevation privileges to copy if needed
+   * Requires the sudo module to be enabled globally (Unix-like systems only)
+   */
+  sudo?: boolean;
+
+  /**
+   * The owner of the destination. Supports multiple formats:
+   * - "user" - change user only, leave group unchanged
+   * - ":group" - change group only, leave user unchanged
+   * - "user:group" - change both user and group
+   * - "uid:gid" - numeric ids for both
+   *
+   * Only supported on Unix-like systems; silently ignored on Windows
+   * Silently ignored if sudo/elevation is not available
+   */
+  owner?: string;
+
+  /**
+   * If true, overwrite destination if it already exists
+   * Default: false
+   */
+  force?: boolean;
+}
+
+export interface CopyResult {
+  /**
+   * True if anything changed (file/directory copied or ownership updated)
+   */
+  changed: boolean;
+
+  /**
+   * True if the destination was created (copied)
+   */
+  created: boolean;
+
+  /**
+   * True if ownership was updated on an existing destination
+   */
+  ownershipChanged: boolean;
+}
+
+/**
+ * Idempotently copies a file or directory to a destination
+ * Creates parent directories as needed
+ */
+export async function copy(source: string, destination: string, options: CopyOptions = {}): Promise<CopyResult> {
+  const { sudo: allowSudo = false, owner, force = false } = options;
+  const sudoAvailable = canUseSudo(allowSudo);
+
+  const result: CopyResult = {
+    changed: false,
+    created: false,
+    ownershipChanged: false,
+  };
+
+  // Check if source exists
+  const sourceExists = await exists(source);
+  if (!sourceExists) {
+    throw new Error(`Source does not exist: ${source}`);
+  }
+
+  // Owner parameter is only supported on Unix-like systems
+  const shouldHandleOwnership = isUnixLike() && owner && sudoAvailable;
+
+  // Check if destination already exists
+  const destExists = await exists(destination);
+
+  if (destExists && !force) {
+    // Destination exists and force is not set
+    // Check if we need to update ownership
+    if (shouldHandleOwnership) {
+      const needsUpdate = await needsOwnershipUpdate(destination, owner!);
+      if (needsUpdate) {
+        await setOwnershipRecursive(destination, owner!);
+        result.ownershipChanged = true;
+        result.changed = true;
+      }
+    }
+    return result;
+  }
+
+  try {
+    await cp(source, destination, {
+      recursive: true,
+      force: force,
+      preserveTimestamps: true,
+    });
+
+    result.created = true;
+    result.changed = true;
+
+    if (shouldHandleOwnership) {
+      await setOwnershipRecursive(destination, owner!);
+      result.ownershipChanged = true;
+    }
+  } catch (error) {
+    const insufficientPermission = isPermissionError(error);
+
+    if (insufficientPermission && sudoAvailable) {
+      // Retry with sudo using cp command
+      const cpArgs = ["-r", "-p"];
+      if (force) {
+        cpArgs.push("-f");
+      }
+      cpArgs.push(source, destination);
+
+      const cpResult = await sudo(["cp", ...cpArgs]);
+      if (!cpResult.success) {
+        throw new Error(`Failed to copy with sudo: ${cpResult.stderr || cpResult.stdout}`);
+      }
+
+      result.created = true;
+      result.changed = true;
+
+      if (shouldHandleOwnership) {
+        await setOwnershipRecursive(destination, owner!);
+        result.ownershipChanged = true;
+      } else if (!owner) {
+        // When creating the dir with sude it will be owned by root by default, but the user expects to own it
+        // as they really don't know if sudo was user or not.
+        await setOwnershipRecursive(destination, currentUserOwnerString());
+      }
+    } else {
+      // Not a permission error or sudo not available, rethrow
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to copy: ${errorMessage}`);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Recursively set ownership on a path and all its contents
+ */
+async function setOwnershipRecursive(path: string, ownerSpec: string): Promise<void> {
+  const chownResult = await sudo(["chown", "-R", ownerSpec, path]);
+  if (!chownResult.success) {
+    throw new Error(`Failed to set ownership: ${chownResult.stderr || chownResult.stdout}`);
+  }
+}
+
+function isPermissionError(error: any): Boolean {
+  return (
+    error instanceof Error &&
+    (("code" in error && (error.code === "EACCES" || error.code === "EPERM")) ||
+      error.message.toLowerCase().includes("permission denied"))
+  );
+}
 
 export interface EnsureLineOptions {
   /**
@@ -189,6 +341,82 @@ export interface MkdirResult {
 }
 
 /**
+ * Idempotently creates a directory, including any necessary parent directories.
+ * If the directory already exists, this function does nothing unless ownership needs updating.
+ */
+export async function mkdir(path: string, options: MkdirOptions = {}): Promise<MkdirResult> {
+  const { sudo: allowSudo = false, owner } = options;
+  const sudoAvailable = canUseSudo(allowSudo);
+
+  const result: MkdirResult = {
+    changed: false,
+    created: false,
+    ownershipChanged: false,
+  };
+
+  // Owner parameter is only supported on Unix-like systems
+  const shouldHandleOwnership = isUnixLike() && owner && sudoAvailable;
+
+  const pathExists = await exists(path);
+
+  if (pathExists) {
+    if (shouldHandleOwnership) {
+      const needsUpdate = await needsOwnershipUpdate(path, owner!);
+      if (needsUpdate) {
+        await setOwnership(path, owner!, sudoAvailable);
+        result.ownershipChanged = true;
+        result.changed = true;
+      }
+    }
+    // Directory exists and ownership is correct (or not applicable)
+    return result;
+  }
+
+  try {
+    // Always try to create with native mkdir first
+    await fsMkdir(path, { recursive: true });
+    result.created = true;
+    result.changed = true;
+
+    // Set ownership if needed
+    if (shouldHandleOwnership) {
+      await setOwnership(path, owner!, sudoAvailable);
+      result.ownershipChanged = true;
+    }
+  } catch (error) {
+    const insufficientPermissions = isPermissionError(error);
+
+    if (insufficientPermissions && sudoAvailable) {
+      // Retry with sudo using mkdir command
+      const mkdirResult = await sudo(["mkdir", "-p", path]);
+      if (!mkdirResult.success) {
+        throw new Error(`Failed to create directory with sudo: ${mkdirResult.stderr || mkdirResult.stdout}`);
+      }
+
+      result.created = true;
+      result.changed = true;
+
+      // Set ownership if specified
+      if (shouldHandleOwnership) {
+        await setOwnershipWithCommand(path, owner!);
+        result.ownershipChanged = true;
+      } else if (isUnixLike() && !owner) {
+        // When creating the dir with sude it will be owned by root by default, but the user expects to own it
+        // as they really don't know if sudo was user or not.
+        await setOwnershipWithCommand(path, currentUserOwnerString());
+        result.ownershipChanged = true;
+      }
+    } else {
+      // Not a permission error or sudo not available, rethrow
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to create directory: ${errorMessage}`);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Check if we can effectively use sudo (both allowed by caller and globally enabled)
  * Only applicable on Unix-like systems
  */
@@ -245,32 +473,6 @@ async function needsOwnershipUpdate(path: string, ownerSpec: string): Promise<bo
 }
 
 /**
- * Set ownership of a path using chown command
- * This handles all ownership formats: "user", ":group", "user:group"
- */
-async function setOwnershipWithCommand(path: string, ownerSpec: string, useSudo: boolean): Promise<void> {
-  if (useSudo) {
-    const chownResult = await sudo(["chown", ownerSpec, path]);
-    if (!chownResult.success) {
-      throw new Error(`Failed to set directory owner: ${chownResult.stderr || chownResult.stdout}`);
-    }
-  } else {
-    const proc = spawn({
-      cmd: ["chown", ownerSpec, path],
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
-
-    if (exitCode !== 0) {
-      throw new Error(`Failed to set directory owner: ${stderr}`);
-    }
-  }
-}
-
-/**
  * Set ownership of a path
  * Tries native chown first if both user and group are specified, otherwise uses chown command
  */
@@ -298,89 +500,24 @@ async function setOwnership(path: string, ownerSpec: string, useSudo: boolean): 
 
   // For partial specifications or if native chown failed, use chown command
   // This properly handles ":group" and "user" formats
-  await setOwnershipWithCommand(path, ownerSpec, useSudo);
+  await setOwnershipWithCommand(path, ownerSpec);
 }
 
 /**
- * Idempotently creates a directory, including any necessary parent directories.
- * If the directory already exists, this function does nothing unless ownership needs updating.
+ * Returns the current user's owner string in the format "uid:gid".
+ * @returns The current user's owner string.
  */
-export async function mkdir(path: string, options: MkdirOptions = {}): Promise<MkdirResult> {
-  const { sudo: allowSudo = false, owner } = options;
-  const sudoAvailable = canUseSudo(allowSudo);
+function currentUserOwnerString(): string {
+  return `${process!.getuid()}:${process!.getgid()}`;
+}
 
-  const result: MkdirResult = {
-    changed: false,
-    created: false,
-    ownershipChanged: false,
-  };
-
-  // Owner parameter is only supported on Unix-like systems
-  const shouldHandleOwnership = isUnixLike() && owner && sudoAvailable;
-
-  // Check if directory already exists
-  const pathExists = await exists(path);
-
-  if (pathExists) {
-    // Directory exists - check if we need to update ownership
-    if (shouldHandleOwnership) {
-      const needsUpdate = await needsOwnershipUpdate(path, owner!);
-      if (needsUpdate) {
-        await setOwnership(path, owner!, sudoAvailable);
-        result.ownershipChanged = true;
-        result.changed = true;
-      }
-    }
-    // Directory exists and ownership is correct (or not applicable)
-    return result;
+/**
+ * Set ownership of a path using chown command
+ * This handles all ownership formats: "user", ":group", "user:group"
+ */
+async function setOwnershipWithCommand(path: string, ownerSpec: string): Promise<void> {
+  const chownResult = await sudo(["chown", ownerSpec, path]);
+  if (!chownResult.success) {
+    throw new Error(`Failed to set directory owner: ${chownResult.stderr || chownResult.stdout}`);
   }
-
-  // Directory doesn't exist - need to create it
-  try {
-    // Always try to create with native mkdir first
-    await fsMkdir(path, { recursive: true });
-    result.created = true;
-    result.changed = true;
-
-    // Set ownership if needed
-    if (shouldHandleOwnership) {
-      await setOwnership(path, owner!, sudoAvailable);
-      result.ownershipChanged = true;
-    }
-  } catch (error) {
-    const isPermissionError =
-      error instanceof Error &&
-      (("code" in error && (error.code === "EACCES" || error.code === "EPERM")) ||
-        error.message.toLowerCase().includes("permission denied"));
-
-    if (isPermissionError && sudoAvailable) {
-      // Retry with sudo using mkdir command
-      const mkdirResult = await sudo(["mkdir", "-p", path]);
-      if (!mkdirResult.success) {
-        throw new Error(`Failed to create directory with sudo: ${mkdirResult.stderr || mkdirResult.stdout}`);
-      }
-
-      result.created = true;
-      result.changed = true;
-
-      // Set ownership if specified
-      if (shouldHandleOwnership) {
-        await setOwnershipWithCommand(path, owner!, sudoAvailable);
-        result.ownershipChanged = true;
-      }
-
-      // When creating the dir with sude it will be owned by root by default, but the user expects to own it
-      // as they really don't know if sudo was user or not.
-      if (isUnixLike() && !owner) {
-        await setOwnershipWithCommand(path, `${process!.getuid()}:${process!.getgid()}`, sudoAvailable);
-        result.ownershipChanged = true;
-      }
-    } else {
-      // Not a permission error or sudo not available, rethrow
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to create directory: ${errorMessage}`);
-    }
-  }
-
-  return result;
 }

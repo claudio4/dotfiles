@@ -13,7 +13,7 @@ export function addToCurrentPATH(path: string): void {
  * Checks if a command exists in the system.
  */
 export function commandExists(cmd: string): boolean {
-  return !!Bun.which(cmd);
+  return !!which(cmd);
 }
 
 /**
@@ -105,4 +105,15 @@ export async function spawn<const In extends Spawn.Writable = "ignore">(
     stdout,
     stderr,
   };
+}
+
+/**
+ * Checks if a command exists in the system.
+ * Contrary to Bun.which, this function reacts to PATH changes by default.
+ */
+export function which(cmd: string): string | null {
+  return Bun.which(cmd, {
+    // Bun caches the PATH environment variable, so we need to pass it explicitly
+    PATH: process.env.PATH,
+  });
 }

@@ -1,0 +1,64 @@
+{%! if($.wsl) { %}
+# In WSL .profile is not sourced by default, so we do this.
+source "$HOME/.profile"
+# Load WSL specific config
+source "{% $.configHome %}/shell/wsl-profile.sh"
+{%! } %}
+
+{%! if ($.fish) { %}
+# Use fish as an itneractive shell isntead of BASH.
+if [[ -z ${BASH_EXECUTION_STRING} && $- == *i* && -x "{% $.fish %}" && $(ps --no-header --pid=$PPID --format=comm) != "fish" ]]; then
+shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=''
+exec "{% $.fish %}" $LOGIN_OPTION
+fi
+{%! } %}
+# Load the distro default bashrc
+[ -f "/etc/skel/.bashrc" ] && source "/etc/skel/.bashrc"
+
+
+# Set XDG homes if not set
+export XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+export XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+export XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
+
+# Load homebrew
+{%! if ($.homebrew) { %}
+if [ -z "${HOMEBREW_PREFIX}" ]; then
+    export HOMEBREW_PREFIX="{% $.homebrew %}";
+    export HOMEBREW_CELLAR="{% $.homebrew %}/Cellar";
+    export HOMEBREW_REPOSITORY="{% $.homebrew %}";
+    export PATH="{% $.homebrew %}/bin:{% $.homebrew %}/sbin${PATH+:$PATH}";
+    [ -z "${MANPATH-}" ] || export MANPATH=":${MANPATH#:}";
+    export INFOPATH="{% $.homebrew %}/share/info:${INFOPATH:-}";
+fi
+{%! } %}
+
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Pure prompt from bash-it
+function __pure_prompt() {
+    local bold_blue="\[\e[34;1m\]"
+    local green="\[\e[0;32m\]"
+    local red="\[\e[0;31m\]"
+    local yellow="\[\e[0;33m\]"
+    local normal="\[\e[0m\]"
+
+    local ps_host="${bold_blue?}\h${normal?}"
+    local ps_user="${green?}\u${normal?}"
+    local ps_user_mark="${green?}\$ ${normal?}"
+    local ps_root="${red?}\u${red?}"
+    local ps_root_mark="${red?} \$ ${normal?}"
+    local ps_path="${yellow?}\w${normal?}"
+
+    case "${EUID:-$UID}" in
+    0)
+    ps_user_mark="${ps_root_mark}"
+    ps_user="${ps_root}"
+    ;;
+    esac
+    PS1="${ps_user}@${ps_host}:${ps_path}${ps_user_mark}"
+}
+__pure_prompt

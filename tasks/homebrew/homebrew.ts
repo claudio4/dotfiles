@@ -1,3 +1,4 @@
+import { which } from "bun";
 import { addToCurrentPATH, commandExists, commandOrTaskRegistered, spawn } from "internal/cmd";
 import { mkdir } from "internal/fs";
 import { gitClone } from "internal/git-clone";

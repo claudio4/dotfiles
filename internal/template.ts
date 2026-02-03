@@ -18,41 +18,41 @@
  * fn({ items: [1, 2, 3] }); // "123"
  */
 export function compileTemplate(template: string): (context: any) => string {
-    // Split by: 1. Closing tag, 2. Logic tag ({%!), 3. Output tag ({%)
-    // Order matters: '{%!' must come before '{%' in regex
-    const parts = template.split(/(%\}|\{%!|\{%)/);
+  // Split by: 1. Closing tag, 2. Logic tag ({%!), 3. Output tag ({%)
+  // Order matters: '{%!' must come before '{%' in regex
+  const parts = template.split(/(%\}|\{%!|\{%)/);
 
-    let body = 'let out = "";\n';
-    let mode = "text";
+  let body = 'let out = "";\n';
+  let mode = "text";
 
-    for (const part of parts) {
-        if (part === "{%!") {
-            mode = "logic";
-            continue;
-        }
-        if (part === "{%") {
-            mode = "output";
-            continue;
-        }
-        if (part === "%}") {
-            mode = "text";
-            continue;
-        }
-
-        if (mode === "text") {
-            // Standard text: append as string
-            if (part) body += `out += ${JSON.stringify(part)};\n`;
-        } else if (mode === "output") {
-            // Output: append evaluated result
-            body += `out += (${part});\n`;
-        } else if (mode === "logic") {
-            // Logic: execute raw code
-            body += `${part}\n`;
-        }
+  for (const part of parts) {
+    if (part === "{%!") {
+      mode = "logic";
+      continue;
+    }
+    if (part === "{%") {
+      mode = "output";
+      continue;
+    }
+    if (part === "%}") {
+      mode = "text";
+      continue;
     }
 
-    body += "return out;";
-    return new Function("$", body);
+    if (mode === "text") {
+      // Standard text: append as string
+      if (part) body += `out += ${JSON.stringify(part)};\n`;
+    } else if (mode === "output") {
+      // Output: append evaluated result
+      body += `out += (${part});\n`;
+    } else if (mode === "logic") {
+      // Logic: execute raw code
+      body += `${part}\n`;
+    }
+  }
+
+  body += "return out;";
+  return new Function("$", body);
 }
 
 /**
@@ -62,7 +62,7 @@ export function compileTemplate(template: string): (context: any) => string {
  * @returns Promise resolving to compiled template function
  */
 export function compileTemplateFromFile(path: string): Promise<(context: any) => string> {
-    return Bun.file(path)
-        .text()
-        .then((t) => compileTemplate(t));
+  return Bun.file(path)
+    .text()
+    .then((t) => compileTemplate(t));
 }
