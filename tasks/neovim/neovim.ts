@@ -1,7 +1,7 @@
 import { commandExists } from "internal/cmd";
 import { mkdir } from "internal/fs";
 import { gitClone } from "internal/git-clone";
-import { install } from "internal/package-manager";
+import { install, installWithSystemPackageManager } from "internal/package-manager";
 import { BaseTask } from "internal/task";
 import { getConfigHome } from "internal/user";
 import { markAsErrorHandled } from "internal/utils";
@@ -16,6 +16,10 @@ class NeovimTask extends BaseTask {
       markAsErrorHandled(installPromise);
     }
     await mkdir(getConfigHome());
+    this.setMessage("install git");
+    if (!commandExists("git")) {
+      await installWithSystemPackageManager(["git"]);
+    }
     this.setMessage("Clone nvim config");
     await gitClone({
       url: "https://github.com/claudio4/nvim-config.git",

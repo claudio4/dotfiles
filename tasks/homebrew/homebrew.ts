@@ -1,4 +1,4 @@
-import { commandExists, commandOrTaskRegistered, spawn } from "internal/cmd";
+import { addToCurrentPATH, commandExists, commandOrTaskRegistered, spawn } from "internal/cmd";
 import { mkdir } from "internal/fs";
 import { gitClone } from "internal/git-clone";
 import { installWithSystemPackageManager, overrideDefaultPackageManager } from "internal/package-manager";
@@ -45,6 +45,7 @@ class HomebrewTask extends BaseTask {
       update: false,
     });
 
+    addToCurrentPATH(`${this.options.homebrewPath}/bin`);
     if (!cloneResult.changed) return;
 
     this.setMessage("Install homebrew");
