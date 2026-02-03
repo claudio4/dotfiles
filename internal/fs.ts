@@ -1,10 +1,155 @@
-import { exists } from "fs/promises";
+import { exists, readFile, writeFile } from "fs/promises";
 import { mkdir as fsMkdir } from "fs/promises";
 import { stat } from "fs/promises";
 import { chown as fsChown } from "fs/promises";
 import { spawn } from "bun";
 import { sudo, isEnabled as isSudoEnabled } from "internal/sudo";
 import { resolveGroupId, resolveUserId } from "./user";
+import { isUnixLike } from "./utils";
+
+export interface EnsureLineOptions {
+  /**
+   * Where to insert the line if it doesn't exist
+   * - "start" - at the beginning of the file
+   * - "end" - at the end of the file (default)
+   * - "before" - before the first line matching the search pattern
+   * - "after" - after the first line matching the search pattern
+   */
+  position?: "start" | "end" | "before" | "after";
+
+  /**
+   * Search pattern for before/after positioning
+   * Can be a string (exact line match) or RegExp
+   * Required when position is "before" or "after"
+   */
+  search?: string | RegExp;
+}
+
+export interface EnsureLineResult {
+  /**
+   * True if the file was modified
+   */
+  changed: boolean;
+
+  /**
+   * True if the file was created
+   */
+  created: boolean;
+
+  /**
+   * True if the line was added to the file
+   */
+  added: boolean;
+}
+
+/**
+ * Idempotently ensures a line exists in a file
+ * Creates the file if it doesn't exist
+ */
+export async function ensureLine(
+  path: string,
+  line: string,
+  options: EnsureLineOptions = {},
+): Promise<EnsureLineResult> {
+  const { position = "end", search } = options;
+
+  const result: EnsureLineResult = {
+    changed: false,
+    created: false,
+    added: false,
+  };
+
+  // Validate options
+  if ((position === "before" || position === "after") && !search) {
+    throw new Error(`search pattern is required when position is "${position}"`);
+  }
+
+  const fileExists = await exists(path);
+
+  if (!fileExists) {
+    const lineEnding = process.platform === "win32" ? "\r\n" : "\n";
+    await writeFile(path, line + lineEnding, "utf-8");
+
+    result.created = true;
+    result.added = true;
+    result.changed = true;
+    return result;
+  }
+
+  // Read file content
+  const content = await readFile(path, "utf-8");
+  const lineEnding = detectLineEnding(content);
+  const lines = content.split(/\r?\n/);
+
+  if (lines.includes(line)) {
+    return result;
+  }
+
+  let newLines: string[];
+
+  if (position === "start") {
+    newLines = [line, ...lines];
+  } else if (position === "end") {
+    newLines = [...lines, line];
+  } else if (position === "before" || position === "after") {
+    // Find the first matching line
+    const matchIndex = lines.findIndex((l) => lineMatches(l, search!));
+
+    if (matchIndex === -1) {
+      throw new Error(`Search pattern not found in file: ${search instanceof RegExp ? search.source : search}`);
+    }
+
+    if (position === "before") {
+      newLines = [...lines.slice(0, matchIndex), line, ...lines.slice(matchIndex)];
+    } else {
+      newLines = [...lines.slice(0, matchIndex + 1), line, ...lines.slice(matchIndex + 1)];
+    }
+  } else {
+    throw new Error(`Invalid position: ${position}`);
+  }
+
+  // Write back to file
+  // Join lines and ensure file ends with a line ending
+  let newContent = newLines.join(lineEnding);
+
+  // preserve final new line if present
+  if (content.endsWith(lineEnding)) {
+    newContent += lineEnding;
+  }
+
+  await writeFile(path, newContent, "utf-8");
+
+  result.added = true;
+  result.changed = true;
+
+  return result;
+}
+
+/**
+ * Detect the line ending style used in content
+ * Returns "\r\n" for Windows-style, "\n" for Unix-style
+ * Falls back to OS default if content is empty or has no line breaks
+ */
+function detectLineEnding(content: string): "\n" | "\r\n" {
+  if (content.includes("\r\n")) {
+    return "\r\n";
+  }
+  if (content.includes("\n")) {
+    return "\n";
+  }
+  // Default based on platform
+  return process.platform === "win32" ? "\r\n" : "\n";
+}
+
+/**
+ * Check if a line matches a search pattern
+ */
+function lineMatches(line: string, pattern: string | RegExp): boolean {
+  if (typeof pattern === "string") {
+    return line === pattern;
+  }
+  return pattern.test(line);
+}
 
 export interface MkdirOptions {
   /**
@@ -41,13 +186,6 @@ export interface MkdirResult {
    * True if ownership was updated on an existing directory
    */
   ownershipChanged: boolean;
-}
-
-/**
- * Check if we're on a Unix-like system that supports ownership
- */
-function isUnixLike(): boolean {
-  return process.platform !== "win32";
 }
 
 /**
