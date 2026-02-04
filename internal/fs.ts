@@ -1,11 +1,11 @@
-import { cp, exists, readFile, writeFile } from "fs/promises";
+import { cp, exists, readdir, readFile, writeFile } from "fs/promises";
 import { mkdir as fsMkdir } from "fs/promises";
 import { stat } from "fs/promises";
 import { chown as fsChown } from "fs/promises";
-import { spawn } from "bun";
 import { sudo, isEnabled as isSudoEnabled } from "internal/sudo";
 import { resolveGroupId, resolveUserId } from "./user";
 import { isUnixLike } from "./utils";
+import { join } from "path";
 
 export interface CopyOptions {
   /**
@@ -27,10 +27,19 @@ export interface CopyOptions {
   owner?: string;
 
   /**
-   * If true, overwrite destination if it already exists
+   * If true, always overwrite destination
    * Default: false
    */
   force?: boolean;
+
+  /**
+   * Pattern(s) to ignore when copying directories.
+   * Files or directories matching this pattern will be skipped.
+   * Can be a string (exact match), RegExp, or an array of either.
+   * The pattern is matched against the full path of each file/directory being copied.
+   * Note: When using sudo fallback, this option is not supported.
+   */
+  ignore?: string | RegExp | Array<string | RegExp>;
 }
 
 export interface CopyResult {
@@ -55,7 +64,7 @@ export interface CopyResult {
  * Creates parent directories as needed
  */
 export async function copy(source: string, destination: string, options: CopyOptions = {}): Promise<CopyResult> {
-  const { sudo: allowSudo = false, owner, force = false } = options;
+  const { sudo: allowSudo = false, owner, force = false, ignore } = options;
   const sudoAvailable = canUseSudo(allowSudo);
 
   const result: CopyResult = {
@@ -73,31 +82,37 @@ export async function copy(source: string, destination: string, options: CopyOpt
   // Owner parameter is only supported on Unix-like systems
   const shouldHandleOwnership = isUnixLike() && owner && sudoAvailable;
 
-  // Check if destination already exists
   const destExists = await exists(destination);
 
-  if (destExists && !force) {
-    // Destination exists and force is not set
-    // Check if we need to update ownership
-    if (shouldHandleOwnership) {
-      const needsUpdate = await needsOwnershipUpdate(destination, owner!);
-      if (needsUpdate) {
-        await setOwnershipRecursive(destination, owner!);
-        result.ownershipChanged = true;
-        result.changed = true;
+  if (!force && destExists) {
+    const areIdentical = await compareSourceAndDest(source, destination, ignore);
+    if (areIdentical) {
+      // they might have the same content but ownership could be wrong
+      if (shouldHandleOwnership) {
+        const needsUpdate = await needsOwnershipUpdate(destination, owner!);
+        if (needsUpdate) {
+          await setOwnershipRecursive(destination, owner!);
+          result.ownershipChanged = true;
+          result.changed = true;
+        }
       }
+
+      return result;
     }
-    return result;
   }
+
+  // Build filter function for ignore patterns
+  const filter = ignore ? createFilterFunction(ignore) : undefined;
 
   try {
     await cp(source, destination, {
       recursive: true,
-      force: force,
+      force: true,
       preserveTimestamps: true,
+      filter,
     });
 
-    result.created = true;
+    result.created = !destExists;
     result.changed = true;
 
     if (shouldHandleOwnership) {
@@ -109,10 +124,12 @@ export async function copy(source: string, destination: string, options: CopyOpt
 
     if (insufficientPermission && sudoAvailable) {
       // Retry with sudo using cp command
-      const cpArgs = ["-r", "-p"];
-      if (force) {
-        cpArgs.push("-f");
+      // Note: ignore patterns are not supported when using sudo fallback
+      if (ignore) {
+        throw new Error("Ignore patterns are not supported when using sudo fallback");
       }
+
+      const cpArgs = ["-r", "-p", "-f"];
       cpArgs.push(source, destination);
 
       const cpResult = await sudo(["cp", ...cpArgs]);
@@ -139,6 +156,111 @@ export async function copy(source: string, destination: string, options: CopyOpt
   }
 
   return result;
+}
+
+/**
+ * Creates a filter function for use with fs.cp based on ignore patterns
+ * Returns true to include the file, false to exclude it
+ */
+function createFilterFunction(ignore: string | RegExp | Array<string | RegExp>): (src: string) => boolean {
+  const patterns = Array.isArray(ignore) ? ignore : [ignore];
+
+  return (src: string) => {
+    for (const pattern of patterns) {
+      if (typeof pattern === "string") {
+        // For string patterns, check if the path includes the pattern
+        if (src.includes(pattern)) {
+          return false;
+        }
+      } else if (pattern instanceof RegExp) {
+        // For RegExp patterns, test against the full path
+        if (pattern.test(src)) {
+          return false;
+        }
+      }
+    }
+    // Include the file if no patterns matched
+    return true;
+  };
+}
+
+/**
+ * Compare source and destination to check if they are identical
+ * Returns true if they are the same, false if different
+ */
+async function compareSourceAndDest(
+  source: string,
+  dest: string,
+  ignore?: string | RegExp | Array<string | RegExp>,
+): Promise<boolean> {
+  try {
+    const sourceStat = await stat(source);
+    const destStat = await stat(dest);
+
+    // If types don't match (file vs directory), they're different
+    if (sourceStat.isFile() !== destStat.isFile() || sourceStat.isDirectory() !== destStat.isDirectory()) {
+      return false;
+    }
+
+    if (sourceStat.isFile()) {
+      // For files, compare size and modification time
+      // If both match, we consider them identical (avoids reading entire file content)
+      return sourceStat.size === destStat.size && sourceStat.mtimeMs === destStat.mtimeMs;
+    }
+
+    if (sourceStat.isDirectory()) {
+      return await compareDirectories(source, dest, ignore);
+    }
+
+    // For other types (symlinks, etc.), consider them different
+    return false;
+  } catch (error) {
+    // If we can't stat either path, consider them different
+    return false;
+  }
+}
+
+/**
+ * Recursively compare two directories
+ */
+async function compareDirectories(
+  sourceDir: string,
+  destDir: string,
+  ignore?: string | RegExp | Array<string | RegExp>,
+): Promise<boolean> {
+  try {
+    const filter = ignore ? createFilterFunction(ignore) : undefined;
+
+    const sourceEntries = await readdir(sourceDir);
+    const destEntries = await readdir(destDir);
+
+    const filteredSourceEntries = filter
+      ? sourceEntries.filter((entry) => filter(join(sourceDir, entry)))
+      : sourceEntries;
+
+    const sourceSet = new Set(filteredSourceEntries);
+
+    // Check if all filtered source entries exist in dest and match
+    for (const entry of sourceSet) {
+      if (!destEntries.includes(entry)) {
+        return false;
+      }
+
+      // Recursively compare each entry
+      const sourcePath = join(sourceDir, entry);
+      const destPath = join(destDir, entry);
+
+      const areIdentical = await compareSourceAndDest(sourcePath, destPath, ignore);
+      if (!areIdentical) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    // If we can't read directories, consider them different
+    return false;
+  }
 }
 
 /**
