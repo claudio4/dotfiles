@@ -13,7 +13,7 @@ class BashTask extends BaseTask {
     interactiveToFish: true,
   };
   override async _execute(): Promise<void> {
-    const moderUtils = await isTaskRegistered("modern-utils");
+    const modernUtils = await isTaskRegistered("modern-utils");
 
     const vars: {
       bat: boolean;
@@ -27,10 +27,10 @@ class BashTask extends BaseTask {
     } = {
       configHome: getConfigHome(),
       wsl: isWSL(),
-      bat: commandExists("bat") || moderUtils,
-      eza: commandExists("eza") || moderUtils,
-      fzf: commandExists("fzf") || moderUtils,
-      zoxide: commandExists("zoxide") || moderUtils,
+      bat: commandExists("bat") || modernUtils,
+      eza: commandExists("eza") || modernUtils,
+      fzf: commandExists("fzf") || modernUtils,
+      zoxide: commandExists("zoxide") || modernUtils,
     };
     if (this.options.interactiveToFish) {
       const fishPath = which("fish");
