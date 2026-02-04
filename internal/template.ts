@@ -1,3 +1,6 @@
+import { dirname } from "node:path";
+import { mkdir } from "./fs";
+
 /**
  * Compiles a template string into an executable function.
  *
@@ -97,4 +100,61 @@ export function compileTemplateFromFile(path: string): Promise<(context: any) =>
   return Bun.file(path)
     .text()
     .then((t) => compileTemplate(t));
+}
+
+export interface RenderTemplateResult {
+  /**
+   * True if the destination file was modified or created
+   */
+  changed: boolean;
+
+  /**
+   * True if the destination file was created (did not exist before)
+   */
+  created: boolean;
+}
+
+/**
+ * Renders a template file to a destination file.
+ * Creates parent directories as needed.
+ * Only writes the file if the content has changed (idempotent).
+ *
+ * @param templatePath - Path to the template file
+ * @param destinationPath - Path where the rendered output should be saved
+ * @param context - Context object (available as `$` in the template)
+ * @returns Promise resolving to result indicating if anything changed
+ *
+ */
+export async function renderTemplateToFile(
+  templatePath: string,
+  destinationPath: string,
+  context: any = {},
+): Promise<RenderTemplateResult> {
+  const result: RenderTemplateResult = {
+    changed: false,
+    created: false,
+  };
+
+  const compiledTemplate = await compileTemplateFromFile(templatePath);
+  const renderedContent = compiledTemplate(context);
+
+  const destFile = Bun.file(destinationPath);
+
+  if (await destFile.exists()) {
+    const existingContent = await destFile.text();
+    if (existingContent === renderedContent) {
+      // Content is the same, no changes needed
+      return result;
+    }
+  } else {
+    result.created = true;
+  }
+
+  const parentDir = dirname(destinationPath);
+  await mkdir(parentDir);
+
+  await destFile.write(renderedContent);
+  result.changed = true;
+
+  return result;
 }
