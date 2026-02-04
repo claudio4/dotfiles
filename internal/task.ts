@@ -85,6 +85,17 @@ export class TaskDependencyError extends TaskError {
     this.message = `Task "${taskId}" failed due to dependency "${dependencyId}": ${cause.message}`;
     this.name = "TaskDependencyError";
   }
+
+  /**
+   * Returns the original task error that failed, even when multiple layers of DependencyErrors are present
+   */
+  getOriginalError(): TaskError {
+    let currentError = this.cause as TaskError;
+    while (currentError instanceof TaskDependencyError && currentError.cause instanceof TaskError) {
+      currentError = currentError.cause;
+    }
+    return currentError;
+  }
 }
 
 /**
