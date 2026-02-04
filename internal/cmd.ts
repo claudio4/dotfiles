@@ -82,6 +82,7 @@ export async function spawn<const In extends Spawn.Writable = "ignore">(
 
   const proc = Bun.spawn(command, {
     ...spawnOptions,
+    env: { ...process.env, ...spawnOptions.env },
     stdout: "pipe",
     stderr: "pipe",
   });
