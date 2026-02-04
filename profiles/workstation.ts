@@ -1,6 +1,8 @@
 import { Profile } from "internal/profile";
 import bash from "tasks/bash/bash";
+import basicTools from "tasks/basic-tools/basic-tools";
 import buildEssentials from "tasks/build-essentials/build-essentials";
+import fish from "tasks/fish/fish";
 import git from "tasks/git/git";
 import go from "tasks/go/go";
 import homebrew from "tasks/homebrew/homebrew";
@@ -12,6 +14,6 @@ const profile = new Profile({
   description: "The basic profile of my workstations",
 });
 
-profile.addTask(git, homebrew, buildEssentials, bash, go, neovim, modernUtils);
+profile.addTask(git, homebrew, buildEssentials, bash, basicTools, fish, go, neovim, modernUtils);
 
 export default profile;

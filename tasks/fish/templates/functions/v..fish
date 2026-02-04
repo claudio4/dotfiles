@@ -1,9 +1,9 @@
-{% if is_nvim_installed %}
+{%! if ($.nvim) { %}
 function v --wraps=nvim
     nvim $argv;
 end
-{% else %}
+{%! } else { %}
 function v --wraps=vim
      vim $argv;
 end
-{% endif %}
+{%! } %}

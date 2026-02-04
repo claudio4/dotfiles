@@ -11,7 +11,7 @@ set -g hydro_color_prompt brgreen
 # Enable multicd using just dots
 abbr --add dotdot --regex '^\.\.+$' --function multicd
 
-{% if is_wsl %}
+{%! if ($.wsl) { %}
 # Propagate PWD change to Windows Terminal
 __register_windows_terminal_hook
-{% endif %}
+{%! } %}

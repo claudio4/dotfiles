@@ -1,9 +1,9 @@
-{% if is_eza_installed %}
+{%! if ($.eza) { %}
 function l --wraps=eza
     eza -lah $argv;
 end
-{% else %}
+{%! } else { %}
 function l --wraps=ls
      ls -lah $argv;
 end
-{% endif %}
+{%! } %}
