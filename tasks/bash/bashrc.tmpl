@@ -11,6 +11,7 @@ if [[ -z ${BASH_EXECUTION_STRING} && $- == *i* && -x "{% $.fish %}" && $(ps --no
 shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=''
 exec "{% $.fish %}" $LOGIN_OPTION
 fi
+
 {%! } %}
 # Load the distro default bashrc
 [ -f "/etc/skel/.bashrc" ] && source "/etc/skel/.bashrc"
@@ -38,6 +39,14 @@ if [ -d "$HOME/.local/bin" ]; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+{%! if ($.fzf) { %}
+# Load FZF integration
+eval "$(fzf --bash)"
+{%! } if ($.zoxide) { %}
+# Load Zoxide integration
+eval "$(zoxide init bash)"
+{%! } %}
+
 # Pure prompt from bash-it
 function __pure_prompt() {
     local bold_blue="\[\e[34;1m\]"
@@ -62,3 +71,10 @@ function __pure_prompt() {
     PS1="${ps_user}@${ps_host}:${ps_path}${ps_user_mark}"
 }
 __pure_prompt
+
+# aliases
+{%! if($.eza) { %}
+alias ls="eza"
+{%! } if($.bat) { %}
+alias cat="bat --decorations never -P"
+{%! } %}
