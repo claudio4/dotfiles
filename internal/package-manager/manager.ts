@@ -31,10 +31,10 @@ export enum InstallPriority {
   /** Normal priority - default for regular package installations */
   NORMAL = 0,
 
-  /** High priority - installation needed to keep system/application working */
+  /** High priority - installation needed to keep working, may be needed for some I/O operations*/
   REQUIRED = 100,
 
-  /** Critical priority - blocking long-running async operations, needs immediate installation */
+  /** Critical priority - blocking long-running async operations or many tasks, needs immediate installation */
   BLOCKING = 500,
 }
 
