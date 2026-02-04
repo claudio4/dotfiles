@@ -1,5 +1,5 @@
 import type { Profile } from "./profile";
-import type { TaskStatus, TaskStatusInfo } from "./task";
+import { TaskDependencyError, type TaskStatus, type TaskStatusInfo } from "./task";
 
 /**
  * ANSI escape codes for terminal control
@@ -342,19 +342,25 @@ export class ProfileDisplay {
       total: this.taskInfoMap.size,
     };
 
+    const divisorWidth = Math.min(60, this.terminalWidth);
+
+    const failedTasks: TaskStatusInfo[] = [];
+
     for (const info of this.taskInfoMap.values()) {
       if (info.status === "completed") counts.completed++;
-      else if (info.status === "failed") counts.failed++;
-      else if (info.status === "skipped") counts.skipped++;
+      else if (info.status === "failed") {
+        counts.failed++;
+        failedTasks.push(info);
+      } else if (info.status === "skipped") counts.skipped++;
     }
 
     const lines: string[] = [];
     lines.push("");
 
     if (this.options.fancy) {
-      lines.push(ANSI.BOLD + ANSI.CYAN + "═".repeat(60) + ANSI.RESET);
+      lines.push(ANSI.BOLD + ANSI.CYAN + "═".repeat(divisorWidth) + ANSI.RESET);
       lines.push(ANSI.BOLD + ANSI.CYAN + "  📊 Execution Report" + ANSI.RESET);
-      lines.push(ANSI.BOLD + ANSI.CYAN + "═".repeat(60) + ANSI.RESET);
+      lines.push(ANSI.BOLD + ANSI.CYAN + "═".repeat(divisorWidth) + ANSI.RESET);
       lines.push("");
 
       // Summary stats
@@ -379,11 +385,11 @@ export class ProfileDisplay {
         lines.push(ANSI.BOLD + ANSI.BG_YELLOW + ANSI.BLACK + "  ⚠️  PROFILE COMPLETED WITH WARNINGS  " + ANSI.RESET);
       }
 
-      lines.push(ANSI.BOLD + ANSI.CYAN + "═".repeat(60) + ANSI.RESET);
+      lines.push(ANSI.BOLD + ANSI.CYAN + "═".repeat(divisorWidth) + ANSI.RESET);
     } else {
-      lines.push("-".repeat(60));
+      lines.push("-".repeat(divisorWidth));
       lines.push("Execution Report");
-      lines.push("-".repeat(60));
+      lines.push("-".repeat(divisorWidth));
       lines.push("");
       lines.push("Summary:");
       lines.push(`  Completed: ${counts.completed}/${counts.total}`);
@@ -405,10 +411,43 @@ export class ProfileDisplay {
         lines.push("PROFILE COMPLETED WITH WARNINGS");
       }
 
-      lines.push("-".repeat(60));
+      lines.push("-".repeat(divisorWidth));
     }
 
     process.stdout.write(lines.join("\n") + "\n");
+
+    if (failedTasks.length > 0) {
+      process.stdout.write("\n");
+
+      if (this.options.fancy) {
+        process.stdout.write(ANSI.BOLD + ANSI.RED + "═".repeat(divisorWidth) + ANSI.RESET + "\n");
+        process.stdout.write(ANSI.BOLD + ANSI.RED + "  ❌ Error Details" + ANSI.RESET + "\n");
+        process.stdout.write(ANSI.BOLD + ANSI.RED + "═".repeat(divisorWidth) + ANSI.RESET + "\n\n");
+      } else {
+        process.stdout.write("-".repeat(divisorWidth) + "\n");
+        process.stdout.write("Error Details\n");
+        process.stdout.write("-".repeat(divisorWidth) + "\n\n");
+      }
+
+      for (const task of failedTasks) {
+        if (!task.error) continue;
+        // If we already have the task registered we don't want to see its error twice
+        if (task.error instanceof TaskDependencyError) {
+          const originalSin = task.error.getOriginalError();
+          if (failedTasks.some((t) => t.id === originalSin.taskId)) continue;
+        }
+
+        if (this.options.fancy) {
+          process.stdout.write(ANSI.BOLD + ANSI.RED + `Task: ${task.id}` + ANSI.RESET + "\n");
+        } else {
+          process.stdout.write(`Task: ${task.id}\n`);
+        }
+
+        console.error(task.error);
+
+        process.stdout.write("\n");
+      }
+    }
   }
 
   /**
