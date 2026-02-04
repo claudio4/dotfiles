@@ -6,6 +6,8 @@
  * - `{% expression %}`: Output block - evaluates expression and appends to output
  * - Plain text: Appended to output as-is
  *
+ * Logic blocks that are alone on a line (with only whitespace) will consume their line break.
+ *
  * @param template - Template string to compile
  * @returns Function that accepts context object `$` and returns rendered string
  *
@@ -24,24 +26,54 @@ export function compileTemplate(template: string): (context: any) => string {
 
   let body = 'let out = "";\n';
   let mode = "text";
+  let previousTextPart = "";
+  let isStandaloneLogicBlock = false;
 
-  for (const part of parts) {
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+
     if (part === "{%!") {
+      // Check if the previous text part makes this logic block "standalone"
+      // (i.e., only whitespace from the last newline to this tag)
+      const lastNewlineIndex = previousTextPart.lastIndexOf("\n");
+      if (lastNewlineIndex === -1) {
+        // No newline yet - check if we're at the start and only have whitespace
+        isStandaloneLogicBlock = previousTextPart.trim() === "";
+      } else {
+        // Check if everything after the last newline is whitespace
+        const afterNewline = previousTextPart.slice(lastNewlineIndex + 1);
+        isStandaloneLogicBlock = afterNewline.trim() === "";
+      }
       mode = "logic";
       continue;
     }
+
     if (part === "{%") {
       mode = "output";
+      isStandaloneLogicBlock = false; // Output blocks don't consume newlines
       continue;
     }
+
     if (part === "%}") {
+      // If this was a standalone logic block, check if next part starts with whitespace + newline
+      if (mode === "logic" && isStandaloneLogicBlock && i + 1 < parts.length) {
+        const nextPart = parts[i + 1];
+        // Check if next part starts with optional whitespace followed by newline
+        const match = nextPart.match(/^[ \t]*\r?\n/);
+        if (match) {
+          // Strip the matched whitespace and newline from the next part
+          parts[i + 1] = nextPart.slice(match[0].length);
+        }
+      }
       mode = "text";
+      isStandaloneLogicBlock = false;
       continue;
     }
 
     if (mode === "text") {
       // Standard text: append as string
       if (part) body += `out += ${JSON.stringify(part)};\n`;
+      previousTextPart = part;
     } else if (mode === "output") {
       // Output: append evaluated result
       body += `out += (${part});\n`;
