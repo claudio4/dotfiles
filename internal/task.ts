@@ -374,7 +374,7 @@ export abstract class BaseTask implements Task {
           dErr = new TaskDependencyError(this.id, err.taskId, err);
         }
         this._error = dErr;
-        this.updateStatus(TaskStatus.Failed);
+        this.updateStatus(TaskStatus.Skipped);
         throw dErr;
       }
 
