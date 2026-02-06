@@ -9,7 +9,7 @@ import {
   type PackageDefinition,
   type PackageManager,
 } from "internal/package-manager/manager";
-import { BaseTask, TaskDependencyError, TaskError, TaskStatus } from "internal/task";
+import { BaseTask, TaskError, TaskStatus } from "internal/task";
 
 class HomebrewTask extends BaseTask {
   override id = "homebrew";
@@ -30,11 +30,12 @@ class HomebrewTask extends BaseTask {
   override register(): void {
     if (this.status !== TaskStatus.Unregistered) return;
     this.updateStatus(TaskStatus.Pending);
-    if (!this.options.shouldOverride) return;
 
     // we create a new package manager to overwrite the defaut one
     const pm = new CachedPackageManager(new BrewManager());
     this.pm = pm;
+
+    if (!this.options.shouldOverride) return;
 
     // we need to block installations until we are done, otherwise homebrew will
     // not be available, this promise does just that and by resolving it we allow
@@ -103,6 +104,14 @@ class HomebrewTask extends BaseTask {
     });
 
     return p;
+  }
+
+  // Install packages using homebrew
+  // Using this method makes you a dependant of the Homebrew task
+  async install(packages: PackageDefinition[], priority?: number): Promise<void> {
+    await this.run();
+    if (!this.pm) throw new TaskError(this.id, new Error("Package manager not initialized"));
+    return this.pm.install(packages, priority);
   }
 }
 
