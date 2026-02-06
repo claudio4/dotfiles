@@ -21,7 +21,7 @@ const buildPackages: PackageDefinition[] = [
 ];
 
 class BuildEssentialsTask extends BaseTask {
-  override id = "BuildEssentials";
+  override id = "build-essentials";
   override _execute(): Promise<void> {
     this.setMessage("Installing build essentials...");
     return installWithSystemPackageManager(buildPackages, InstallPriority.BACKGROUND);
