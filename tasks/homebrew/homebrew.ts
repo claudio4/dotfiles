@@ -9,17 +9,19 @@ import {
   type PackageDefinition,
   type PackageManager,
 } from "internal/package-manager/manager";
-import { BaseTask, TaskStatus } from "internal/task";
+import { BaseTask, TaskDependencyError, TaskError, TaskStatus } from "internal/task";
 
 class HomebrewTask extends BaseTask {
   override id = "homebrew";
   public options = {
     homebrewPath: "/home/linuxbrew/.linuxbrew",
     homebrewUrl: "https://github.com/Homebrew/brew.git",
+    // if true, this task will override the default package manager with homebrew
+    shouldOverride: true,
   };
 
   pm?: CachedPackageManager;
-  private unlockPM?: () => void;
+  private unlockPM?: (err?: Error) => void;
 
   /*
    * Registers the tasks and also sets homebrew as the default package manager.
@@ -28,6 +30,7 @@ class HomebrewTask extends BaseTask {
   override register(): void {
     if (this.status !== TaskStatus.Unregistered) return;
     this.updateStatus(TaskStatus.Pending);
+    if (!this.options.shouldOverride) return;
 
     // we create a new package manager to overwrite the defaut one
     const pm = new CachedPackageManager(new BrewManager());
@@ -37,7 +40,9 @@ class HomebrewTask extends BaseTask {
     // not be available, this promise does just that and by resolving it we allow
     // installations to go through
     const lockingPromise = new Promise((resolve) => {
-      this.unlockPM = resolve as () => {};
+      this.unlockPM = resolve as (err?: Error) => {};
+    }).then((err?) => {
+      if (err) throw err;
     });
 
     const wrapperPm: PackageManager = {
@@ -55,6 +60,10 @@ class HomebrewTask extends BaseTask {
 
   async _executeInternal(): Promise<void> {
     if (process.platform === "win32") throw new Error("Homebrew is not supported on Windows");
+    if (commandExists("brew")) {
+      this.setMessage("Homebrew already installed");
+      return;
+    }
 
     this.setMessage("Create directory");
     await mkdir(this.options.homebrewPath, { sudo: true });
@@ -79,14 +88,21 @@ class HomebrewTask extends BaseTask {
   }
 
   override _execute(): Promise<void> {
-    return this._executeInternal().finally(() => {
+    const p = this._executeInternal();
+
+    p.then(() => {
       this.unlockPM?.();
       if (this.pm) {
         // we no longer need our wrapper holding installs
         // so we let the real pm to handle the installs from now on.
         overrideDefaultPackageManager(this.pm);
       }
+    }).catch((err) => {
+      const tErr = new TaskError(this.id, err);
+      this.unlockPM?.(tErr);
     });
+
+    return p;
   }
 }
 
