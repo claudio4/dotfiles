@@ -427,8 +427,14 @@ export async function isTaskRegistered(taskId: string): Promise<boolean> {
   try {
     const task = await getTask(taskId);
     if (!task?.getInfo) return false;
-    return task.getInfo().status !== TaskStatus.Unregistered;
+    return taskWillRun(task);
   } catch (err) {
     return false;
   }
+}
+
+export function taskWillRun(task: Task): boolean {
+  return (
+    task.status !== TaskStatus.Unregistered && task.status !== TaskStatus.Disabled && task.status !== TaskStatus.Skipped
+  );
 }
