@@ -1,4 +1,5 @@
 import type { Profile } from "./profile";
+import type { disable } from "./sudo";
 import { TaskDependencyError, type TaskStatus, type TaskStatusInfo } from "./task";
 
 /**
@@ -42,6 +43,7 @@ const ANSI = {
  */
 const STATUS_DISPLAY = {
   unregistered: { emoji: "⚫", color: ANSI.GRAY, label: "Unregistered" },
+  disabled: { emoji: "🚫", color: ANSI.GRAY, label: "Disabled" },
   pending: { emoji: "⏸️", color: ANSI.WHITE, label: "Pending" },
   waiting: { emoji: "⏳", color: ANSI.YELLOW, label: "Waiting" },
   running: { emoji: "🚀", color: ANSI.CYAN, label: "Running" },
@@ -60,7 +62,8 @@ const STATUS_PRIORITY: Record<TaskStatus, number> = {
   pending: 3,
   completed: 4,
   skipped: 5,
-  unregistered: 6,
+  disabled: 6,
+  unregistered: 7,
 };
 
 /**
@@ -307,6 +310,8 @@ export class ProfileDisplay {
       const endTime = info.endTime || Date.now();
       const duration = endTime - info.startTime;
       line += ANSI.GRAY + ` (${this.formatDuration(duration)})` + ANSI.RESET;
+    } else {
+      line += ANSI.GRAY + " (0ms)" + ANSI.RESET;
     }
 
     // Message (if any)
@@ -339,6 +344,7 @@ export class ProfileDisplay {
       completed: 0,
       failed: 0,
       skipped: 0,
+      disabled: 0,
       total: this.taskInfoMap.size,
     };
 
@@ -371,6 +377,9 @@ export class ProfileDisplay {
       }
       if (counts.skipped > 0) {
         lines.push(`    ${ANSI.YELLOW}⊘  Skipped:${ANSI.RESET}   ${counts.skipped}/${counts.total}`);
+      }
+      if (counts.disabled > 0) {
+        lines.push(`    ${ANSI.GRAY}⊘  Disabled:${ANSI.RESET}   ${counts.disabled}/${counts.total}`);
       }
       lines.push("");
       lines.push(`    ${ANSI.CYAN}⏱️  Total time:${ANSI.RESET} ${this.formatDuration(totalDuration)}`);

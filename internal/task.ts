@@ -12,10 +12,14 @@ export enum TaskStatus {
   Running = "running",
   /** Task completed successfully */
   Completed = "completed",
-  /** Task was skipped (dependency not registered or explicit skip) */
+  /** Task was skipped (dependency not registered or failed) */
   Skipped = "skipped",
   /** Task failed during execution */
   Failed = "failed",
+  /** Task is disabled. Disabled task should fail with a TaskDisabledError if
+   * they are executed,
+   */
+  Disabled = "disabled",
 }
 
 /**
@@ -63,6 +67,7 @@ export class TaskError extends Error {
       cause instanceof Error ? `Task "${taskId}" failed: ${cause.message}` : `Task "${taskId}" failed: ${cause}`;
     super(message, { cause });
     this.name = "TaskError";
+    this.taskId = taskId;
   }
 }
 
@@ -108,6 +113,16 @@ export class TaskSkippedError extends Error {
   ) {
     super(`Task "${taskId}" was skipped`);
     this.name = "TaskSkippedError";
+  }
+}
+
+/**
+ * Error thrown when a task is disabled
+ */
+export class TaskDisabledError extends Error {
+  constructor(public readonly taskId: string) {
+    super(`Task ${taskId} is disabled`);
+    this.name = "TaskDisabledError";
   }
 }
 
@@ -160,6 +175,12 @@ export interface Task {
    * @returns true if the listener was removed, false if it was not found
    */
   removeStatusListener(listener: TaskStatusListener): boolean;
+
+  /**
+   * Sets the task status to disabled, prohibiting the task form running.
+   * Disabled tasks will always fail with a TaskDisabledError.
+   */
+  disable(): void;
 
   /**
    * Optional settings for the task. They are task dependant.
@@ -219,6 +240,13 @@ export abstract class BaseTask implements Task {
    */
   addStatusListener(listener: TaskStatusListener): void {
     this.statusListeners.push(listener);
+  }
+
+  /**
+   * Disables the task.
+   */
+  disable(): void {
+    this.updateStatus(TaskStatus.Disabled, `${this.id} disabled`);
   }
 
   /**
@@ -318,6 +346,8 @@ export abstract class BaseTask implements Task {
   }
 
   private async _runInternal(): Promise<void> {
+    if (this._status === TaskStatus.Disabled) throw new TaskDisabledError(this.id);
+
     try {
       this.updateStatus(TaskStatus.Running);
       await this._execute();

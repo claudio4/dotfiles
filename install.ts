@@ -17,7 +17,7 @@ interface CLIConfig {
   enableSudo: boolean;
   sudoPassword?: string;
   disablePackageManager: boolean;
-  ignoreTasks: Set<string>;
+  disableTasks: Set<string>;
   profileOptions: Record<string, any>;
   taskOptions: Map<string, Record<string, any>>;
   showHelp: boolean;
@@ -40,7 +40,7 @@ function parseCliConfig(): CLIConfig {
       sudo: { type: "boolean", short: "s" },
       "sudo-password": { type: "string", short: "S" },
       "disable-package-manager": { type: "boolean" },
-      ignore: { type: "string", multiple: true, short: "i" },
+      disable: { type: "string", multiple: true, short: "d" },
       "profile-option": { type: "string", multiple: true, short: "P" },
       "task-option": { type: "string", multiple: true, short: "T" },
       help: { type: "boolean", short: "h" },
@@ -55,7 +55,7 @@ function parseCliConfig(): CLIConfig {
   const envEnableSudo = process.env.DOTFILES_ENABLE_SUDO === "1" || process.env.DOTFILES_ENABLE_SUDO === "true";
   const envDisablePackageManager =
     process.env.DOTFILES_DISABLE_PACKAGE_MANAGER === "1" || process.env.DOTFILES_DISABLE_PACKAGE_MANAGER === "true";
-  const envIgnoreTasks = process.env.DOTFILES_IGNORE_TASKS?.split(",").map((t) => t.trim()) || [];
+  const envdisabledTasks = process.env.DOTFILES_DISABLE_TASKS?.split(",").map((t) => t.trim()) || [];
 
   // Determine profile name
   let profileName: string | null = null;
@@ -71,8 +71,8 @@ function parseCliConfig(): CLIConfig {
   const enableSudo = values.sudo || envEnableSudo || !!envSudoPassword;
   const sudoPassword = values["sudo-password"] || envSudoPassword;
 
-  // Parse ignore list
-  const ignoreTasks = new Set([...envIgnoreTasks, ...(values.ignore || [])]);
+  // Parse disable list
+  const disableTasks = new Set([...envdisabledTasks, ...(values.disable || [])]);
 
   // Parse profile options (format: key=value or key:value)
   const profileOptions: Record<string, any> = {};
@@ -104,7 +104,7 @@ function parseCliConfig(): CLIConfig {
     enableSudo,
     sudoPassword,
     disablePackageManager: values["disable-package-manager"] || envDisablePackageManager,
-    ignoreTasks,
+    disableTasks,
     profileOptions,
     taskOptions,
     showHelp: values.help || false,
@@ -228,9 +228,8 @@ function applyConfiguration(profile: Profile<any>, config: CLIConfig): void {
   // Apply task options and filter ignored tasks
   const filteredTasks = [];
   for (const task of profile.tasks) {
-    // Skip ignored tasks (don't register them)
-    if (config.ignoreTasks.has(task.id)) {
-      console.log(`Ignoring task: ${task.id}`);
+    if (config.disableTasks.has(task.id)) {
+      task.disable();
       continue;
     }
 
@@ -238,11 +237,7 @@ function applyConfiguration(profile: Profile<any>, config: CLIConfig): void {
     if (config.taskOptions.has(task.id)) {
       task.options = { ...task.options, ...config.taskOptions.get(task.id) };
     }
-
-    filteredTasks.push(task);
   }
-
-  profile.tasks = filteredTasks;
 }
 
 /**
