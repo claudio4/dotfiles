@@ -1,11 +1,11 @@
-import { cp, exists, readdir, readFile, writeFile } from "fs/promises";
+import { cp, exists, lstat, readdir, readFile, readlink, rm, symlink, writeFile } from "fs/promises";
 import { mkdir as fsMkdir } from "fs/promises";
 import { stat } from "fs/promises";
 import { chown as fsChown } from "fs/promises";
 import { sudo, isEnabled as isSudoEnabled } from "internal/sudo";
 import { resolveGroupId, resolveUserId } from "./user";
 import { isUnixLike } from "./utils";
-import { join } from "path";
+import { dirname, join, resolve } from "path";
 
 export interface CopyOptions {
   /**
@@ -423,6 +423,172 @@ function lineMatches(line: string, pattern: string | RegExp): boolean {
     return line === pattern;
   }
   return pattern.test(line);
+}
+
+export interface LinkOptions {
+  /**
+   * How to handle source directories:
+   * - "normal" - create a single symlink pointing to the target (default)
+   * - "files" - replicate the directory structure at the destination with real directories,
+   *   then create symlinks for each individual file. Same as normal if the target is a file
+   */
+  type?: "normal" | "files";
+
+  /**
+   * Pattern(s) to ignore when linking directories with type "files".
+   * Files or directories matching this pattern will be skipped.
+   * Can be a string (exact match), RegExp, or an array of either.
+   * The pattern is matched against the full path of each file/directory.
+   * Only applicable when type is "files"; ignored otherwise.
+   */
+  ignore?: string | RegExp | Array<string | RegExp>;
+}
+
+export interface LinkResult {
+  /**
+   * True if anything changed (symlinks created, replaced, or directories created)
+   */
+  changed: boolean;
+}
+
+/**
+ * Idempotently creates a symbolic link (or a tree of symbolic links) from destination to source.
+ *
+ * If the destination already exists as a symlink pointing to the correct source, nothing happens.
+ * If the destination exists but points elsewhere or is a regular file/directory, it is removed
+ * and replaced with the correct symlink.
+ *
+ * When the source is a directory and `type` is "files", the directory structure is replicated
+ * at the destination using real directories, and each individual file is symlinked.
+ */
+export async function link(source: string, destination: string, options: LinkOptions = {}): Promise<LinkResult> {
+  const { type = "normal", ignore } = options;
+
+  const result: LinkResult = { changed: false };
+
+  // Resolve to absolute paths for consistent symlink targets
+  const resolvedSource = resolve(source);
+  const resolvedDest = resolve(destination);
+
+  // Check if source exists
+  const sourceExists = await exists(resolvedSource);
+  if (!sourceExists) {
+    throw new Error(`Source does not exist: ${resolvedSource}`);
+  }
+
+  const sourceStat = await stat(resolvedSource);
+
+  // If source is a file, or type is "normal", create a single symlink
+  if (sourceStat.isFile() || type === "normal") {
+    const linkChanged = await ensureSymlink(resolvedSource, resolvedDest);
+    if (linkChanged) {
+      result.changed = true;
+    }
+    return result;
+  }
+
+  // Source is a directory and type is "files"
+  if (sourceStat.isDirectory() && type === "files") {
+    const changed = await linkDirectoryFiles(resolvedSource, resolvedDest, ignore);
+    if (changed) {
+      result.changed = true;
+    }
+    return result;
+  }
+
+  throw new Error(`Unsupported source type at: ${resolvedSource}`);
+}
+
+/**
+ * Ensures a symlink exists at linkPath pointing to target.
+ * Creates parent directories as needed.
+ * Returns true if any changes were made.
+ */
+async function ensureSymlink(target: string, linkPath: string): Promise<boolean> {
+  // Ensure parent directory exists
+  await fsMkdir(dirname(linkPath), { recursive: true });
+
+  // Check if linkPath already exists
+  try {
+    const linkStat = await lstat(linkPath);
+
+    if (linkStat.isSymbolicLink()) {
+      const currentTarget = await readlink(linkPath);
+      // Resolve the current target relative to the symlink's directory
+      const resolvedCurrentTarget = resolve(dirname(linkPath), currentTarget);
+
+      if (resolvedCurrentTarget === target) {
+        // Already points to the correct target
+        return false;
+      }
+    }
+
+    // Exists but is not the correct symlink — remove it
+    await rm(linkPath, { recursive: true, force: true });
+  } catch (error: any) {
+    if (error.code !== "ENOENT") {
+      throw error;
+    }
+    // Doesn't exist, we'll create it below
+  }
+
+  await symlink(target, linkPath);
+  return true;
+}
+
+/**
+ * Recursively replicates directory structure and symlinks individual files.
+ * Returns true if any changes were made.
+ */
+async function linkDirectoryFiles(
+  sourceDir: string,
+  destDir: string,
+  ignore?: string | RegExp | Array<string | RegExp>,
+): Promise<boolean> {
+  let changed = false;
+
+  // Ensure destination directory exists (as a real directory, not a symlink)
+  try {
+    const destStat = await lstat(destDir);
+
+    if (!destStat.isDirectory() || destStat.isSymbolicLink()) {
+      // It's a file, symlink, or something else — remove and recreate as a real directory
+      await rm(destDir, { recursive: true, force: true });
+      await fsMkdir(destDir, { recursive: true });
+      changed = true;
+    }
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      await fsMkdir(destDir, { recursive: true });
+      changed = true;
+    } else {
+      throw error;
+    }
+  }
+
+  const filter = ignore ? createFilterFunction(ignore) : undefined;
+  const entries = await readdir(sourceDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const sourcePath = join(sourceDir, entry.name);
+    const destPath = join(destDir, entry.name);
+
+    // Apply filter
+    if (filter && !filter(sourcePath)) {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      // Recurse into subdirectories
+      const dirChanged = await linkDirectoryFiles(sourcePath, destPath, ignore);
+      if (dirChanged) changed = true;
+    } else {
+      const linkChanged = await ensureSymlink(sourcePath, destPath);
+      if (linkChanged) changed = true;
+    }
+  }
+
+  return changed;
 }
 
 export interface MkdirOptions {
