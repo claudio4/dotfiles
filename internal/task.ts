@@ -388,8 +388,9 @@ export abstract class BaseTask implements Task {
 
   /**
    * Helper to run a dependency and handle skip/failure scenarios
+   * @returns Wether the task run successfully or not
    */
-  protected async runDependency(task: Task, optional: boolean = false): Promise<void> {
+  protected async runDependency(task: Task, optional: boolean = false): Promise<boolean> {
     // Check if dependency was registered
     if (!optional && task.status === TaskStatus.Unregistered) {
       const reason: SkipReason = {
@@ -402,10 +403,11 @@ export abstract class BaseTask implements Task {
     try {
       this.updateStatus(TaskStatus.Waiting, "Waiting for task " + task.id);
       await task.run();
+      return true;
     } catch (err) {
-      if (err instanceof TaskSkippedError && optional) {
+      if ((err instanceof TaskSkippedError || err instanceof TaskDisabledError) && optional) {
         // Optional dependency was skipped, we can continue
-        return;
+        return false;
       }
 
       if (err instanceof TaskError) {
