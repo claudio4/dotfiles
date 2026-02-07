@@ -1,9 +1,8 @@
 import { commandExists, which } from "internal/cmd";
-import { BaseTask, getTask, isTaskRegistered, TaskStatus } from "internal/task";
-import { compileTemplateFromFile } from "internal/template";
+import { BaseTask, getTask, isTaskRegistered, TaskStatus, taskWillRun } from "internal/task";
+import { compileTemplateFromFile, renderTemplateToFile } from "internal/template";
 import { getConfigHome, getHome } from "internal/user";
 import { isWSL } from "internal/utils";
-import { get } from "node:https";
 import { join } from "node:path";
 
 class BashTask extends BaseTask {
@@ -33,9 +32,21 @@ class BashTask extends BaseTask {
       zoxide: commandExists("zoxide") || modernUtils,
     };
     if (this.options.interactiveToFish) {
-      const fishPath = which("fish");
+      let fishPath = which("fish");
       if (fishPath) {
         vars.fish = fishPath;
+      } else {
+        // if the fish task runs, we wait for it and we check again for the fish binary.
+        const fishTask = await getTask("fish");
+        if (fishTask && taskWillRun(fishTask)) {
+          const fishFinishedSuccessfully = await this.runDependency(fishTask, true);
+          if (fishFinishedSuccessfully) {
+            fishPath = which("fish");
+            if (fishPath) {
+              vars.fish = fishPath;
+            }
+          }
+        }
       }
     }
 
@@ -45,8 +56,7 @@ class BashTask extends BaseTask {
     }
 
     this.setMessage("Create .bashrc");
-    const bashrc = (await compileTemplateFromFile(join(import.meta.dir, "bashrc.tmpl")))(vars);
-    await Bun.file(join(getHome(), ".bashrc")).write(bashrc);
+    await renderTemplateToFile(join(import.meta.dir, "bashrc.tmpl"), join(getHome(), ".bashrc"), vars);
   }
 }
 
