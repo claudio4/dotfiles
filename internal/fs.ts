@@ -80,7 +80,7 @@ export async function copy(source: string, destination: string, options: CopyOpt
   }
 
   // Owner parameter is only supported on Unix-like systems
-  const shouldHandleOwnership = isUnixLike() && owner && sudoAvailable;
+  const shouldHandleOwnership = isUnixLike && owner && sudoAvailable;
 
   const destExists = await exists(destination);
 
@@ -643,7 +643,7 @@ export async function mkdir(path: string, options: MkdirOptions = {}): Promise<M
   };
 
   // Owner parameter is only supported on Unix-like systems
-  const shouldHandleOwnership = isUnixLike() && owner && sudoAvailable;
+  const shouldHandleOwnership = isUnixLike && owner && sudoAvailable;
 
   const pathExists = await exists(path);
 
@@ -688,7 +688,7 @@ export async function mkdir(path: string, options: MkdirOptions = {}): Promise<M
       if (shouldHandleOwnership) {
         await setOwnershipWithCommand(path, owner!);
         result.ownershipChanged = true;
-      } else if (isUnixLike() && !owner) {
+      } else if (isUnixLike && !owner) {
         // When creating the dir with sude it will be owned by root by default, but the user expects to own it
         // as they really don't know if sudo was user or not.
         await setOwnershipWithCommand(path, currentUserOwnerString());
@@ -709,7 +709,7 @@ export async function mkdir(path: string, options: MkdirOptions = {}): Promise<M
  * Only applicable on Unix-like systems
  */
 function canUseSudo(allowed: boolean): boolean {
-  return isUnixLike() && allowed && isSudoEnabled();
+  return isUnixLike && allowed && isSudoEnabled();
 }
 
 /**

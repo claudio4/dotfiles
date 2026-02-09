@@ -1,7 +1,7 @@
 import os from "node:os";
 
 export async function getDistroFamily(): Promise<string> {
-  if (isWindows()) return "windows";
+  if (isWindows) return "windows";
 
   try {
     const osRelease = await Bun.file("/etc/os-release").text();
@@ -58,19 +58,19 @@ function parseOsRelease(content: string): Record<string, string> {
   return info;
 }
 
-/**
- * Check if we're on a Unix-like system that supports ownership
- */
-export function isUnixLike(): boolean {
-  return !isWindows();
-}
+export const isMac = process.platform === "darwin";
+
+export const isLinux = process.platform === "linux";
 
 /**
  * Check if we're on a Unix-like system that supports ownership
  */
-export function isWindows(): boolean {
-  return process.platform === "win32";
-}
+export const isWindows = process.platform === "win32";
+
+/**
+ * Check if we're on a Unix-like system that supports ownership
+ */
+export const isUnixLike = !isWindows;
 
 export function isWSL(): boolean {
   if (process.platform !== "linux") return false;

@@ -2,9 +2,7 @@ import { join } from "node:path";
 import { homedir, userInfo } from "node:os";
 import { spawn } from "internal/cmd";
 import { sudo, isEnabled as isSudoEnabled } from "internal/sudo";
-
-const isWin = process.platform === "win32";
-const isMac = process.platform === "darwin";
+import { isMac, isWindows } from "./utils";
 
 /**
  * Returns the directory for configuration files.
@@ -15,7 +13,7 @@ const isMac = process.platform === "darwin";
 export function getConfigHome(): string {
   if (process.env.XDG_CONFIG_HOME) return process.env.XDG_CONFIG_HOME;
 
-  if (isWin) return process.env.APPDATA || join(homedir(), "AppData", "Roaming");
+  if (isWindows) return process.env.APPDATA || join(homedir(), "AppData", "Roaming");
   if (isMac) return join(homedir(), "Library", "Application Support");
 
   // Linux/Unix fallback
@@ -31,7 +29,7 @@ export function getConfigHome(): string {
 export function getDataHome(): string {
   if (process.env.XDG_DATA_HOME) return process.env.XDG_DATA_HOME;
 
-  if (isWin) return process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
+  if (isWindows) return process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
   if (isMac) return join(homedir(), "Library", "Application Support");
 
   // Linux/Unix fallback
@@ -47,7 +45,7 @@ export function getDataHome(): string {
 export function getCacheHome(): string {
   if (process.env.XDG_CACHE_HOME) return process.env.XDG_CACHE_HOME;
 
-  if (isWin) return process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
+  if (isWindows) return process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
   if (isMac) return join(homedir(), "Library", "Caches");
 
   // Linux/Unix fallback
@@ -63,7 +61,7 @@ export function getCacheHome(): string {
 export function getStateHome(): string {
   if (process.env.XDG_STATE_HOME) return process.env.XDG_STATE_HOME;
 
-  if (isWin) return process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
+  if (isWindows) return process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
   if (isMac) return join(homedir(), "Library", "Logs");
 
   // Linux/Unix fallback
@@ -92,7 +90,7 @@ export function getUserName(): string {
 }
 
 export async function resolveGroupId(groupname: string): Promise<number> {
-  if (isWin) throw new Error("Can not get group id on Windows");
+  if (isWindows) throw new Error("Can not get group id on Windows");
 
   // Check if it's already a numeric gid
   const numericGid = parseInt(groupname, 10);
@@ -120,7 +118,7 @@ export async function resolveGroupId(groupname: string): Promise<number> {
  * @returns the uid of the user
  */
 export async function resolveUserId(username: string): Promise<number> {
-  if (isWin) throw new Error("Can not get user id on Windows");
+  if (isWindows) throw new Error("Can not get user id on Windows");
 
   // Check if it's already a numeric uid
   const numericUid = parseInt(username, 10);
@@ -167,7 +165,7 @@ export interface SetShellResult {
  *         or if chsh fails
  */
 export async function setShell(shell: string, username?: string): Promise<SetShellResult> {
-  if (isWin) throw new Error("setShell is not supported on Windows");
+  if (isWindows) throw new Error("setShell is not supported on Windows");
 
   if (!isSudoEnabled()) {
     throw new Error("setShell requires the sudo module to be enabled. Call sudo.enable() first.");
