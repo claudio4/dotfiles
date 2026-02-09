@@ -29,16 +29,18 @@ export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
 # Move history to XDG directory
 export HISTFILE="$XDG_STATE_HOME/zsh/history"
 
-{% if is_homebrew_installed and homebrew_path is defined %}
-# Add Homebrew support
-export HOMEBREW_PREFIX="{{ homebrew_path }}";
-export HOMEBREW_CELLAR="{{ homebrew_path }}/Cellar";
-export HOMEBREW_REPOSITORY="{{ homebrew_path }}";
-fpath[1,0]="{{ homebrew_path }}/share/zsh/site-functions";
-export PATH="{{ homebrew_path }}/bin:{{ homebrew_path }}/sbin${PATH+:$PATH}";
-[ -z "${MANPATH-}" ] || export MANPATH=":${MANPATH#:}";
-export INFOPATH="{{ homebrew_path }}/share/info:${INFOPATH:-}";
-{% endif %}
+
+{%! if ($.homebrew) { %}
+# Load homebrew
+if [ -z "${HOMEBREW_PREFIX}" ]; then
+    export HOMEBREW_PREFIX="{% $.homebrew %}";
+    export HOMEBREW_CELLAR="{% $.homebrew %}/Cellar";
+    export HOMEBREW_REPOSITORY="{% $.homebrew %}";
+    export PATH="{% $.homebrew %}/bin:{% $.homebrew %}/sbin${PATH+:$PATH}";
+    [ -z "${MANPATH-}" ] || export MANPATH=":${MANPATH#:}";
+    export INFOPATH="{% $.homebrew %}/share/info:${INFOPATH:-}";
+fi
+{%! } %}
 
 # Uncomment the following line if pasting URLs and other text is messed up.
 # DISABLE_MAGIC_FUNCTIONS="true"
@@ -47,30 +49,25 @@ export INFOPATH="{{ homebrew_path }}/share/info:${INFOPATH:-}";
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 plugins=(
     git
-{% if is_fzf_installed %}
+{%! if ($.fzf) { %}
     fzf
-{% endif %}
-{% if is_zoxide_installed %}
+{%! } if ($.zoxide) { %}
     zoxide
-{% endif %}
+{%!  } %}
 )
 
-# Set user vairables before local profiles are loaded.
-{% if is_nvim_installed %}
-export EDITOR="nvim"
-{% else %}
-export EDITOR="vim"
-{% endif %}
+# Set user variables before local profiles are loaded.
+export EDITOR="{% $.nvim ? "nvim" : "vim" %}"
 
 ## enable ctrl+backspace
 bindkey '^H' backward-kill-word
 
-{% if is_wsl %}
+{%! if ($.wsl) { %}
 # In WSL .profile is not sourced by default, so we do this.
 source "$HOME/.profile"
 # Load WSL specific config
 source "$XDG_CONFIG_HOME/shell/wsl-profile.sh"
-{% endif %}
+{%! } %}
 
 # This file is not tracked nor overwritten by the dot files manager, so it can
 # be edited freely for local settings.
@@ -88,18 +85,13 @@ bindkey -v
 
 # Aliases
 alias svim="sudo -E vim"
-alias pn="pnpm"
-{% if is_bat_installed %}
+{%! if ($.bat) { %}
 alias cat="bat --decorations never -P"
-{% endif %}
-{% if is_nvim_installed %}
-alias v="nvim"
-{% else %}
-alias v="vim"
-{% endif %}
+{%! } %}
+alias v="{% $.nvim ? "nvim" : "vim" %}"
 
 # Functions
-{% if is_wsl %}
+{%! if ($.wsl) { %}
 # Change directory to Windows path
 wcd() { cd "$(wslpath $@)" }
-{% endif %}
+{%! } %}

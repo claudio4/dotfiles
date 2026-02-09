@@ -1,10 +1,11 @@
 import { Profile } from "internal/profile";
-import vim from "tasks/vim/vim";
+import wsl from "tasks/wsl/wsl";
+import zsh from "tasks/zsh/zsh";
 
 const profile = new Profile({
   name: "Test Profile",
 });
 
-profile.addTask(vim);
+profile.addTask(zsh, wsl);
 
 export default profile;
