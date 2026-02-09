@@ -225,18 +225,15 @@ function applyConfiguration(profile: Profile<any>, config: CLIConfig): void {
     profile.options = { ...profile.options, ...config.profileOptions };
   }
 
-  // Apply task options and filter ignored tasks
-  const filteredTasks = [];
-  for (const task of profile.tasks) {
-    if (config.disableTasks.has(task.id)) {
-      task.disable();
-      continue;
-    }
+  for (const t of config.disableTasks) {
+    profile.tasks.get(t)?.disable();
+  }
 
-    // Apply task-specific options
-    if (config.taskOptions.has(task.id)) {
-      task.options = { ...task.options, ...config.taskOptions.get(task.id) };
-    }
+  for (const [id, options] of config.taskOptions) {
+    const task = profile.tasks.get(id);
+    if (!task) continue;
+
+    task.options = { ...task.options, ...options };
   }
 }
 
@@ -313,7 +310,7 @@ async function main(): Promise<void> {
   await runProfileWithDisplay(profile);
 
   // Check if any tasks failed
-  const failedTask = profile.tasks.find((t) => t.status === "failed");
+  const failedTask = profile.tasks.values().find((t) => t.status === "failed");
   if (failedTask) {
     process.exit(1);
   }

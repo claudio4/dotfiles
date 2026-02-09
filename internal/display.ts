@@ -123,7 +123,7 @@ export class ProfileDisplay {
     this.terminalWidth = process.stdout.columns || this.terminalWidth;
 
     // Initialize task info
-    for (const task of this.profile.tasks) {
+    for (const task of this.profile.tasks.values()) {
       this.taskInfoMap.set(task.id, task.getInfo());
     }
 
@@ -563,7 +563,7 @@ export async function runProfileWithDisplay(profile: Profile, options?: DisplayO
 
   try {
     // Run all tasks concurrently
-    await Promise.allSettled(profile.tasks.map((task) => task.run()));
+    await Promise.allSettled(profile.tasks.values().map((task) => task.run()));
   } finally {
     display.finish();
   }
