@@ -286,19 +286,25 @@ async function main(): Promise<void> {
     }
   }
 
+  const requestedPackages = new Set();
+
   // Configure package manager
   if (config.disablePackageManager) {
-    const disabledPkgMngr: PackageManager = {
+    const manualPkgMngr: PackageManager = {
       type: "apt",
       install: function (packages) {
-        return Promise.reject(new Error("Package manager is unavailable"));
+        packages.map((p) => (typeof p === "string" ? p : p.default)).forEach((p) => requestedPackages.add(p));
+        return Promise.resolve();
       },
       refresh: function () {
-        return Promise.reject(new Error("Package manager is unavailable"));
+        return Promise.resolve();
+      },
+      addRepository: function (_) {
+        return Promise.resolve({ changed: false, supported: false });
       },
     };
-    packageManager.overrideDefaultPackageManager(disabledPkgMngr);
-    packageManager.overrideSystemPackageManager(disabledPkgMngr);
+    packageManager.overrideDefaultPackageManager(manualPkgMngr);
+    packageManager.overrideSystemPackageManager(manualPkgMngr);
   }
 
   // Apply configuration
@@ -308,6 +314,11 @@ async function main(): Promise<void> {
   profile.register();
 
   await runProfileWithDisplay(profile);
+
+  if (requestedPackages.size > 0) {
+    console.log("\nRequested packages that manual install:");
+    console.log(Array.from(requestedPackages).sort().join(" "));
+  }
 
   // Check if any tasks failed
   const failedTask = profile.tasks.values().find((t) => t.status === "failed");
