@@ -1,0 +1,8 @@
+{
+  "BraveAIChatEnabled": false,
+  "BraveRewardsDisabled": true,
+  "BraveVPNDisabled": true,
+  "BraveWalletDisabled": true,
+  "MetricsReportingEnabled": false,
+  "PasswordManagerEnabled": false
+}
