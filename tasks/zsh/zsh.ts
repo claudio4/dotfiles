@@ -1,5 +1,5 @@
 import { commandExists, which } from "internal/cmd";
-import { copy, mkdir } from "internal/fs";
+import { copy, mkdir, touch } from "internal/fs";
 import { gitClone } from "internal/git-clone";
 import { InstallPriority, installWithSystemPackageManager } from "internal/package-manager";
 import { BaseTask, isTaskRegistered } from "internal/task";
@@ -47,13 +47,10 @@ class ZshTask extends BaseTask {
     this.setMessage("Copy config files");
     const shellConfigFolder = join(getConfigHome(), "shell");
 
-    const localShellFile = Bun.file(join(getConfigHome(), "shell", "local-shell.sh"));
-    if (!(await localShellFile.exists())) {
-      await mkdir(shellConfigFolder);
-      await localShellFile.write("");
-    }
-
-    await copy(join(import.meta.dir, "p10k.zsh"), join(shellConfigFolder, "p10k.zsh"));
+    await Promise.all([
+      touch(join(shellConfigFolder, "local-shell.sh")),
+      copy(join(import.meta.dir, "p10k.zsh"), join(shellConfigFolder, "p10k.zsh")),
+    ]);
 
     const modernUtils = await isTaskRegistered("modern-utils");
     const vars: any = {

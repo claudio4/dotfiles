@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import { commandExists, commandOrTaskRegistered } from "internal/cmd";
-import { copy, mkdir } from "internal/fs";
+import { copy, mkdir, touch } from "internal/fs";
 import { InstallPriority, installWithSystemPackageManager } from "internal/package-manager";
 import { BaseTask, TaskStatus } from "internal/task";
 import { renderTemplateToFile } from "internal/template";
@@ -49,6 +49,8 @@ class WSLTask extends BaseTask {
       await copy(join(import.meta.dir, "neovide.sh"), scriptPath);
       await chmod(scriptPath, 0o755);
     }
+
+    await touch(join(getHome(), ".profile"));
 
     let sshAgentServicePromise;
     if (vars.systemd) {

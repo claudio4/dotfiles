@@ -796,7 +796,7 @@ async function setOwnership(path: string, ownerSpec: string, useSudo: boolean): 
  * @returns The current user's owner string.
  */
 function currentUserOwnerString(): string {
-  return `${process!.getuid()}:${process!.getgid()}`;
+  return `${process!.getuid!()}:${process!.getgid!()}`;
 }
 
 /**
@@ -808,4 +808,24 @@ async function setOwnershipWithCommand(path: string, ownerSpec: string): Promise
   if (!chownResult.success) {
     throw new Error(`Failed to set directory owner: ${chownResult.stderr || chownResult.stdout}`);
   }
+}
+
+/**
+ * Idempotently creates an empty file at the given path.
+ * If the file already exists, this function does nothing.
+ * @argument path The path to the file to create.
+ * @argument createParentDir Whether to create the parent directory if it doesn't exist.
+ * @returns A promise that resolves to true if the file needed to be created, false otherwise.
+ */
+export async function touch(path: string, createParentDir: boolean = true): Promise<boolean> {
+  if (await exists(path)) {
+    return false;
+  }
+
+  if (createParentDir) {
+    await fsMkdir(dirname(path), { recursive: true });
+  }
+
+  await writeFile(path, "");
+  return true;
 }
