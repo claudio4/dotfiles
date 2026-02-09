@@ -1,5 +1,9 @@
 import { which, spawn } from "bun";
+import { rm } from "fs/promises";
 import { sudo } from "internal/sudo";
+import { markAsErrorHandled } from "internal/utils";
+import { tmpdir } from "os";
+import { join } from "path";
 
 export type ManagerType = "apt" | "dnf" | "zypper" | "pacman" | "brew" | "winget";
 
@@ -18,6 +22,14 @@ export interface PackageManager {
    * Updates the package manager repositories (e.g. apt-get update)
    */
   refresh(priority?: number): Promise<void>;
+
+  /**
+   * Adds a third-party repository so that its packages become installable.
+   * Returns `true` if the repository was newly added, `false` if it was
+   * already present or if the definition contains no configuration for
+   * this manager type.
+   */
+  addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult>;
 }
 
 /**
@@ -36,6 +48,62 @@ export enum InstallPriority {
 
   /** Critical priority - blocking long-running async operations or many tasks, needs immediate installation */
   BLOCKING = 500,
+}
+
+/**
+ * Describes how to add a third-party repository to various package managers.
+ * Only the fields relevant to the detected package manager are used; the rest
+ * are silently ignored.
+ */
+export interface RepositoryDefinition {
+  /** Unique name for the repository (used for file naming and idempotency) */
+  name: string;
+  apt?: AptRepositoryConfig;
+  dnf?: RpmRepositoryConfig;
+  zypper?: RpmRepositoryConfig;
+  brew?: BrewRepositoryConfig;
+}
+
+/** Configuration for adding an APT repository (Debian/Ubuntu) */
+export interface AptRepositoryConfig {
+  /** URL to the GPG keyring file (.gpg binary format) */
+  keyUrl: string;
+  /** URL to the sources file (DEB822 .sources format) */
+  sourcesUrl: string;
+}
+
+/** Configuration for adding an RPM repository (Fedora, openSUSE, RHEL) */
+export interface RpmRepositoryConfig {
+  /** URL to the .repo file */
+  repoUrl: string;
+}
+
+/** Configuration for adding a Homebrew tap */
+export interface BrewRepositoryConfig {
+  /** Tap name, e.g. "user/repo" */
+  tap: string;
+}
+
+/**
+ * Describes how to add a third-party repository to various package managers.
+ * Only the fields relevant to the detected package manager are used; the rest
+ * are silently ignored.
+ */
+export interface RepositoryDefinition {
+  /** Unique name for the repository (used for file naming and idempotency) */
+  name: string;
+  apt?: AptRepositoryConfig;
+  dnf?: RpmRepositoryConfig;
+  zypper?: RpmRepositoryConfig;
+  brew?: BrewRepositoryConfig;
+}
+
+export interface AddRepositoryResult {
+  // Whether the underlying package manager supports adding the repository
+  supported: boolean;
+  // Whether the repository was added. False when it was already there.
+  // Always false when supported is false
+  changed: boolean;
 }
 
 export class PackageManagerError extends Error {
@@ -124,6 +192,17 @@ abstract class BasePackageManager implements PackageManager {
     }
     this.hasRerefreshed = true;
   }
+
+  /**
+   * Default implementation: no repository support.
+   * Managers that support adding repositories override this method.
+   */
+  async addRepository(_definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    return {
+      supported: false,
+      changed: false,
+    };
+  }
 }
 
 export class AptManager extends BasePackageManager {
@@ -132,6 +211,52 @@ export class AptManager extends BasePackageManager {
   protected needsSudo = true;
   protected needsRefresh = true;
   readonly type = "apt";
+
+  override async addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    const result = { supported: false, changed: false };
+    if (!definition.apt) return result;
+
+    result.supported = true;
+
+    const { keyUrl, sourcesUrl } = definition.apt;
+    const name = definition.name;
+
+    const keyringPath = `/usr/share/keyrings/${name}.gpg`;
+    const sourcesPath = `/etc/apt/sources.list.d/${name}.sources`;
+
+    if (await Bun.file(sourcesPath).exists()) return result;
+
+    const [keyringResp, sourcesResp] = await Promise.all([fetch(keyUrl), fetch(sourcesUrl)]);
+
+    if (!keyringResp.ok) {
+      throw new PackageManagerError(`Failed to download APT keyring from ${keyUrl}: ${keyringResp.status}`);
+    }
+    if (!sourcesResp.ok) {
+      throw new PackageManagerError(`Failed to download APT sources from ${sourcesUrl}: ${sourcesResp.status}`);
+    }
+
+    // Writing to the appropiate directories is tricky becuase we need root for that. So we use a tpmdir and then copy
+    const tmp = tmpdir();
+    const tmpKeyring = join(tmp, `${name}.gpg`);
+    const tmpSources = join(tmp, `${name}.sources`);
+
+    await Promise.all([Bun.write(tmpKeyring, keyringResp), Bun.write(tmpSources, sourcesResp)]);
+
+    // we copy the files to their appropriate directories. Use install becaause it also allow to set the mode.
+    const [keyResult, sourcesResult] = await Promise.all([
+      this.execute(["install", "-Dm644", tmpKeyring, keyringPath]),
+      this.execute(["install", "-Dm644", tmpSources, sourcesPath]),
+    ]);
+
+    // Best effort to cleand behidn ourselves, but if it fails we don't really care. Is tmp it will go away eventuallly.
+    markAsErrorHandled(rm(tmp, { recursive: true, force: true }));
+
+    // Force a refresh on the next install so the new repo is picked up
+    this.hasRerefreshed = false;
+
+    result.changed = true;
+    return result;
+  }
 }
 
 export class DnfManager extends BasePackageManager {
@@ -140,14 +265,84 @@ export class DnfManager extends BasePackageManager {
   protected needsSudo = true;
   protected needsRefresh = false;
   readonly type = "dnf";
+
+  override async addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    const result = { supported: false, changed: false };
+    if (!definition.dnf) return result;
+
+    result.supported = true;
+
+    const { repoUrl } = definition.dnf;
+    const proc = await this.execute(["dnf", "config-manager", "addrepo", "--overwrite", `--from-repofile=${repoUrl}`]);
+
+    if (proc.exitCode !== 0) {
+      throw new PackageManagerError(`Failed to add DNF repository ${definition.name} from ${repoUrl}`, {
+        stdout: proc.stdout,
+        stderr: proc.stderr,
+      });
+    }
+
+    // dnf does not tell us if it was changed or not, so we assume it did.
+    result.changed = true;
+
+    return result;
+  }
 }
 
 export class ZypperManager extends BasePackageManager {
   protected installCommand = ["zypper", "install", "-y"];
-  protected updateCommand = ["zypper", "refresh"];
+  protected updateCommand = ["zypper", "--non-interactive", "refresh"];
   protected needsSudo = true;
   protected needsRefresh = false;
+  private needsToAcceptGPGKeys = false;
   readonly type = "zypper";
+
+  override async addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    const result = { supported: false, changed: false };
+    if (!definition.zypper) return result;
+
+    result.supported = true;
+    const { repoUrl } = definition.zypper;
+
+    const proc = await this.execute(["zypper", "--non-interactive", "addrepo", "--gpgcheck", "--repo", repoUrl]);
+
+    if (proc.exitCode !== 0) {
+      // zypper exits with 4 when the repo already exists
+      if (proc.exitCode === 4) return result;
+      throw new PackageManagerError(`Failed to add Zypper repository ${definition.name} from ${repoUrl}`, {
+        stdout: proc.stdout,
+        stderr: proc.stderr,
+      });
+    }
+
+    // Before using the repository, we need to refresh the package list and accept the new keys
+    // we delegate it to when the next install is done
+    this.needsRefresh = true;
+    this.needsToAcceptGPGKeys = true;
+
+    result.changed = true;
+    return result;
+  }
+
+  // if a repository is added, we need to accept GPG keys on refresh. So the easiest thing is to
+  // override the refresh method
+  override async refresh(): Promise<void> {
+    let updateCommand = this.updateCommand;
+    if (this.needsToAcceptGPGKeys) {
+      updateCommand = ["zypper", "--non-interactive", "--gpg-auto-import-keys", "refresh"];
+    }
+
+    const result = await this.execute(updateCommand);
+    if (result.exitCode !== 0) {
+      throw new PackageManagerError(`zypper failed when refreshing`, {
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+    }
+
+    this.hasRerefreshed = true;
+    this.needsToAcceptGPGKeys = false;
+  }
 }
 
 export class PacmanManager extends BasePackageManager {
@@ -164,6 +359,25 @@ export class BrewManager extends BasePackageManager {
   protected needsSudo = false;
   protected needsRefresh = false;
   readonly type = "brew";
+
+  override async addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    const result = { supported: false, changed: false };
+    if (!definition.brew) return result;
+
+    result.supported = true;
+    const { tap } = definition.brew;
+
+    const proc = await this.execute(["brew", "tap", tap]);
+    if (proc.exitCode !== 0) {
+      throw new PackageManagerError(`Failed to tap ${tap}`, {
+        stdout: proc.stdout,
+        stderr: proc.stderr,
+      });
+    }
+
+    result.changed = true;
+    return result;
+  }
 }
 
 export class WingetManager extends BasePackageManager {
@@ -240,6 +454,11 @@ export class CachedPackageManager implements PackageManager {
   private _refreshTask?: { promise: Promise<void>; task: QueuedTask };
 
   constructor(private readonly _delegate: PackageManager) {}
+
+  addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    // this operation does not need caching nor queing so we ask the delegate directly.
+    return this._delegate.addRepository(definition);
+  }
 
   get type(): ManagerType {
     return this._delegate.type;

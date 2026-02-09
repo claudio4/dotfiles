@@ -6,8 +6,10 @@ import {
   BrewManager,
   CachedPackageManager,
   InstallPriority,
+  type AddRepositoryResult,
   type PackageDefinition,
   type PackageManager,
+  type RepositoryDefinition,
 } from "internal/package-manager/manager";
 import { BaseTask, TaskError, TaskStatus } from "internal/task";
 
@@ -31,7 +33,8 @@ class HomebrewTask extends BaseTask {
     if (this.status !== TaskStatus.Unregistered) return;
     this.updateStatus(TaskStatus.Pending);
 
-    // we create a new package manager to overwrite the defaut one
+    // Create our PackageManager. We'll use it for direct install petitions and to override the
+    // default one if requested.
     const pm = new CachedPackageManager(new BrewManager());
     this.pm = pm;
 
@@ -53,6 +56,9 @@ class HomebrewTask extends BaseTask {
       },
       refresh(priority?: number) {
         return lockingPromise.then(() => pm.refresh(priority));
+      },
+      addRepository(definition) {
+        return lockingPromise.then(() => pm.addRepository(definition));
       },
     };
 
@@ -112,6 +118,14 @@ class HomebrewTask extends BaseTask {
     await this.run();
     if (!this.pm) throw new TaskError(this.id, new Error("Package manager not initialized"));
     return this.pm.install(packages, priority);
+  }
+
+  // Add a tap using homebrew
+  // Using this method makes you a dependant of the Homebrew task
+  async addRepository(definition: RepositoryDefinition): Promise<AddRepositoryResult> {
+    await this.run();
+    if (!this.pm) throw new TaskError(this.id, new Error("Package manager not initialized"));
+    return this.pm.addRepository(definition);
   }
 }
 
