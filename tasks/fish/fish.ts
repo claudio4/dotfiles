@@ -45,28 +45,22 @@ class FishTask extends BaseTask {
     };
 
     if (vars.bat) {
-      const p = copy(
-        join(taskFilesDir, "functions", "cat.cond.fish"),
-        join(fishConfigDir, "functions", "cat.cond.fish"),
-      );
+      const p = copy(join(taskFilesDir, "functions", "cat.cond.fish"), join(fishConfigDir, "functions", "cat.fish"));
       condFilesPromises.push(p);
     }
     if (vars.eza) {
-      const p = copy(join(taskFilesDir, "functions", "ls.cond.fish"), join(fishConfigDir, "functions", "ls.cond.fish"));
+      const p = copy(join(taskFilesDir, "functions", "ls.cond.fish"), join(fishConfigDir, "functions", "ls.fish"));
       condFilesPromises.push(p);
     }
     if (vars.zoxide) {
-      const p = copy(join(taskFilesDir, "functions", "z.cond.fish"), join(fishConfigDir, "functions", "z.cond.fish"));
+      const p = copy(join(taskFilesDir, "functions", "z.cond.fish"), join(fishConfigDir, "functions", "z.fish"));
       condFilesPromises.push(p);
     }
     if (vars.wsl) {
-      const p1 = copy(
-        join(taskFilesDir, "functions", "wcd.cond.fish"),
-        join(fishConfigDir, "functions", "wcd.cond.fish"),
-      );
+      const p1 = copy(join(taskFilesDir, "functions", "wcd.cond.fish"), join(fishConfigDir, "functions", "wcd.fish"));
       const p2 = copy(
         join(taskFilesDir, "functions", "__register_windows_terminal_hook.cond.fish"),
-        join(fishConfigDir, "functions", "__register_windows_terminal_hook.cond.fish"),
+        join(fishConfigDir, "functions", "__register_windows_terminal_hook.fish"),
       );
       condFilesPromises.push(p1, p2);
     }

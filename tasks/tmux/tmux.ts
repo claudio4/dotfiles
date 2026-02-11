@@ -1,6 +1,6 @@
 import { commandExists } from "internal/cmd";
 import { link } from "internal/fs";
-import { install, InstallPriority } from "internal/package-manager";
+import { InstallPriority, installWithSystemPackageManager } from "internal/package-manager";
 import { BaseTask } from "internal/task";
 import { getConfigHome, getHome } from "internal/user";
 import { markAsErrorHandled } from "internal/utils";
@@ -11,7 +11,7 @@ class TmuxTask extends BaseTask {
   override async _execute(): Promise<void> {
     let installPromise;
     if (!commandExists("tmux")) {
-      installPromise = install(["tmux"], InstallPriority.BACKGROUND);
+      installPromise = installWithSystemPackageManager(["tmux"], InstallPriority.BACKGROUND);
       markAsErrorHandled(installPromise);
     }
 

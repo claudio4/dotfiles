@@ -73,7 +73,7 @@ export const isWindows = process.platform === "win32";
 export const isUnixLike = !isWindows;
 
 export function isWSL(): boolean {
-  if (process.platform !== "linux") return false;
+  if (!isLinux) return false;
 
   const release = os.release().toLowerCase();
   return release.includes("microsoft");
