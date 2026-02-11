@@ -22,7 +22,7 @@ class GoTask extends BaseTask {
     this.setMessage("Create Go Path");
     await mkdir(this.options.goPath);
 
-    if (this.options.addToDotProfile && isUnixLike()) {
+    if (this.options.addToDotProfile && isUnixLike) {
       this.setMessage("Add GoPath to .profile");
       await ensureLine(
         join(getHome(), ".profile"),

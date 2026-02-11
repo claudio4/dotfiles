@@ -14,14 +14,13 @@ if not set --query HOMEBREW_PREFIX
         set --global --export INFOPATH {% $.homebrew %}/share/info $INFOPATH
     end
 end
-{%! } %}
 
-{%! if ($.go) { %}
+{%! } if ($.go) { %}
 if set --query GOPATH
     fish_add_path --global --path $GOPATH/bin
 end
-{%! } %}
 
+{%! } %}
 if [ -d "$HOME/.local/bin" ]
     fish_add_path --global --path $HOME/.local/bin
 end

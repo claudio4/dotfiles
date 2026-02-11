@@ -81,7 +81,9 @@ class FishTask extends BaseTask {
     this.setMessage("Apply template files");
     const templatesDir = join(import.meta.dir, "templates");
     const tmplFiles = await Array.fromAsync(new Glob("**").scan({ cwd: templatesDir }));
-    const tmplPromises = tmplFiles.map((f) => renderTemplateToFile(join(templatesDir, f), join(fishConfigDir, f)));
+    const tmplPromises = tmplFiles.map((f) =>
+      renderTemplateToFile(join(templatesDir, f), join(fishConfigDir, f), vars),
+    );
 
     await Promise.all(tmplPromises);
 
