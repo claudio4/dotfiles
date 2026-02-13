@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from "util";
+import { createInterface } from "readline";
 import { hostname } from "os";
 import { join } from "path";
 import { existsSync } from "fs";
@@ -238,6 +239,46 @@ function applyConfiguration(profile: Profile<any>, config: CLIConfig): void {
 }
 
 /**
+ * Prompt the user for a password without echoing it to the terminal
+ */
+function promptPassword(message: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stderr,
+    });
+
+    // Suppress echo by overriding the internal write method
+    const originalWrite = (rl as any)._writeToOutput;
+    (rl as any)._writeToOutput = function (str: string) {
+      // Only print the prompt itself, not the typed characters
+      if (str === message) {
+        originalWrite.call(rl, str);
+      }
+    };
+
+    rl.question(message, (answer) => {
+      // Print newline since the user's Enter wasn't echoed
+      process.stderr.write("\n");
+      rl.close();
+      resolve(answer);
+    });
+
+    rl.on("error", (err) => {
+      rl.close();
+      reject(err);
+    });
+
+    // Handle Ctrl+C
+    rl.on("SIGINT", () => {
+      process.stderr.write("\n");
+      rl.close();
+      process.exit(130);
+    });
+  });
+}
+
+/**
  * Main CLI entry point
  */
 async function main(): Promise<void> {
@@ -283,6 +324,36 @@ async function main(): Promise<void> {
     sudo.enable();
     if (config.sudoPassword) {
       sudo.setDefaultPassword(config.sudoPassword);
+    } else if (await sudo.needsPassword()) {
+      // Sudo needs a password but none was provided
+      if (process.stdin.isTTY) {
+        for (let i = 0; i < 3; i++) {
+          const password = await promptPassword("[sudo] password: ");
+          if (!password) {
+            console.error("Error: No password provided.");
+            process.exit(1);
+          }
+          sudo.setDefaultPassword(password);
+          try {
+            if (await sudo.check()) {
+              break;
+            }
+            console.error("Error: Invalid password");
+            if (i === 2) {
+              console.error("Error: Maximum number of attempts reached.");
+              process.exit(1);
+            }
+          } catch (e) {
+            console.error("Error: Invalid password");
+          }
+        }
+      } else {
+        console.error(
+          "Error: sudo requires a password but no password was provided and the session is not interactive.",
+        );
+        console.error("Hint: Provide a password with --sudo-password or DOTFILES_SUDO_PASSWORD environment variable.");
+        process.exit(1);
+      }
     }
   }
 

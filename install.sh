@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 DOTFILES_REPO="${DOTFILES_REPO:-https://github.com/claudio4/dotfiles.git}"

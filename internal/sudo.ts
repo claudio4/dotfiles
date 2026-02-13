@@ -60,16 +60,61 @@ export async function sudo(command: string | string[], options: BecomeOptions = 
   return executeWithEscalation(fullArgs, method, options.password ?? defaultPassword, timeout, options.env);
 }
 
+/**
+ * Checks if superuser powers can be obtained
+ * @param method the method to be used to gain superuser powers
+ * @returns wether superuser powers could be obtained
+ */
 export async function check(method: BecomeMethod = "sudo"): Promise<boolean> {
+  if (!isModuleEnabled) return false;
+
+  try {
+    const result = await sudo("true", { method, timeout: 1000 });
+    return result.success;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if sudo requires a password to run commands.
+ * Returns true if a password is needed, false if sudo can run passwordless
+ * (e.g. NOPASSWD rule or cached credentials).
+ */
+export async function needsPassword(method: BecomeMethod = "sudo"): Promise<boolean> {
   if (!isModuleEnabled) {
     throw new BecomeError("sudo module must be enabled before use. Call enable() first.");
   }
 
-  try {
-    const result = await sudo("true", { method, timeout: 5000 });
-    return result.success;
-  } catch {
-    return false;
+  switch (method) {
+    case "sudo": {
+      // sudo -n (non-interactive) will fail if a password is required
+      const proc = spawn(["sudo", "-n", "true"], {
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: 1000,
+      });
+      const exitCode = await proc.exited;
+      return exitCode !== 0;
+    }
+    case "doas": {
+      // doas -n (non-interactive) will fail if a password is required
+      const proc = spawn(["doas", "-n", "true"], {
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: 1000,
+      });
+      const exitCode = await proc.exited;
+      return exitCode !== 0;
+    }
+    case "su":
+    case "pkexec":
+      // su and pkexec always require authentication
+      return true;
+    default:
+      return true;
   }
 }
 
