@@ -205,7 +205,7 @@ ENVIRONMENT VARIABLES:
   DOTFILES_ENABLE_SUDO            Enable sudo (set to "1" or "true")
   DOTFILES_SUDO_PASSWORD          Sudo password (also enables sudo)
   DOTFILES_DISABLE_PACKAGE_MANAGER Disable package manager (set to "1" or "true")
-  DOTFILES_IGNORE_TASKS           Comma-separated list of tasks to ignore
+  DOTFILES_DISABLE_TASKS           Comma-separated list of tasks to disable
 `);
 }
 
