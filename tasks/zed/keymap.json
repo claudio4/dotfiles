@@ -1,0 +1,157 @@
+// Zed keymap
+//
+// For information on binding keys, see the Zed
+// documentation: https://zed.dev/docs/key-bindings
+//
+// To see the default key bindings run `zed: open default keymap`
+// from the command palette.
+[
+    {
+        "context": "(VimControl && !menu)",
+        "bindings": {
+            "space": null // Disable the default action vim::WrappingRight to allow which key to show up.
+        }
+    },
+    {
+        "context": "Editor && (vim_mode == normal || vim_mode == visual) && !VimWaiting && !menu",
+        // put key-bindings here if you want them to work in normal & visual mode
+        "bindings": {
+            // Git
+            "space g h d": "editor::ToggleSelectedDiffHunks",
+            "space g h r": "git::Restore",
+
+            // Toggle inlay hints
+            "space t i": "editor::ToggleInlayHints",
+
+            // Toggle soft wrap
+            "space u w": "editor::ToggleSoftWrap",
+
+            // NOTE: Toggle Zen mode, not fully working yet
+            "space c z": "workspace::ToggleCenteredLayout",
+
+            // Open markdown preview
+            "space m p": "markdown::OpenPreview",
+            "space m P": "markdown::OpenPreviewToTheSide",
+
+            // Open recent project
+            "space f p": "projects::OpenRecent",
+            // Search word under cursor
+            // "space s w": "pane::DeploySearch",
+
+            // Chat with AI
+            "space a a": "agent::ToggleFocus",
+            // Go to file with `gf`
+            "g f": "editor::OpenExcerpts"
+        }
+    },
+    {
+        "context": "Editor && vim_mode == normal && !VimWaiting && !menu",
+        "bindings": {
+            "ctrl-h": "workspace::ActivatePaneLeft",
+            "ctrl-l": "workspace::ActivatePaneRight",
+            "ctrl-k": "workspace::ActivatePaneUp",
+            "ctrl-j": "workspace::ActivatePaneDown",
+
+            // +LSP
+            "space .": "editor::ToggleCodeActions",
+            "g d": "editor::GoToDefinition",
+            "g D": "editor::GoToDefinitionSplit",
+            "g i": "editor::GoToImplementation",
+            "g I": "editor::GoToImplementationSplit",
+            "g t": "editor::GoToTypeDefinition",
+            "g T": "editor::GoToTypeDefinitionSplit",
+            "g r": "editor::FindAllReferences",
+            "] d": "editor::GoToDiagnostic",
+            "[ d": "editor::GoToPreviousDiagnostic",
+            // TODO: Go to next/prev error
+            "] e": "editor::GoToDiagnostic",
+            "[ e": "editor::GoToPreviousDiagnostic",
+            // Diagnostic
+            "space x x": "diagnostics::Deploy",
+
+            "space space": "file_finder::Toggle",
+            "shift-l": "pane::ActivateNextItem",
+            "shift-h": "pane::ActivatePreviousItem",
+            "space v": "pane::SplitRight",
+            "space h": "workspace::ActivateNextPane",
+            "space l": "workspace::ActivatePreviousPane",
+            "space c a": "editor::ToggleCodeActions",
+            "shift-q": "pane::CloseOtherItems",
+            "space c r": "editor::Rename"
+        }
+    },
+    // Empty pane, set of keybindings that are available when there is no active editor
+    {
+        "context": "EmptyPane || SharedScreen",
+        "bindings": {
+            // Open file finder
+            "space space": "file_finder::Toggle",
+            // Open recent project
+            "space f p": "projects::OpenRecent"
+        }
+    },
+    // Move in insert mode.
+    {
+        "context": "Editor && vim_mode == insert",
+        "bindings": {
+            "alt-h": "vim::Left",
+            "alt-l": "vim::Right",
+            "alt-j": "vim::Down",
+            "alt-k": "vim::Up"
+        }
+    },
+
+    // Wrap visual selection
+    {
+        "context": "Editor && vim_mode == visual",
+        "bindings": {
+            "shift-s": "vim::PushAddSurrounds"
+        }
+    },
+
+    // File panel
+    {
+        "context": "ProjectPanel && not_editing",
+        "bindings": {
+            "a": "project_panel::NewFile",
+            "n": "project_panel::NewFile",
+            "shift-n": "project_panel::NewDirectory",
+            "d": "project_panel::Trash",
+            "r": "project_panel::Rename",
+            "x": "project_panel::Cut",
+            "c": "project_panel::Copy",
+            "p": "project_panel::Paste",
+            "ctrl-h": "workspace::ActivatePaneLeft",
+            "ctrl-l": "workspace::ActivatePaneRight",
+            "ctrl-k": "workspace::ActivatePaneUp",
+            "ctrl-j": "workspace::ActivatePaneDown"
+        }
+    },
+    // Panel nagivation
+    {
+        "context": "Dock",
+        "bindings": {
+            "ctrl-w h": "workspace::ActivatePaneLeft",
+            "ctrl-w l": "workspace::ActivatePaneRight",
+            "ctrl-w k": "workspace::ActivatePaneUp",
+            "ctrl-w j": "workspace::ActivatePaneDown"
+        }
+    },
+    {
+        "context": "Terminal",
+        "bindings": {
+            "ctrl-/": "workspace::ToggleBottomDock",
+            "ctrl-k": "workspace::ActivatePaneUp",
+            "ctrl-j": "workspace::ActivatePaneDown",
+            "ctrl-r": ["terminal::SendKeystroke", "ctrl-r"],
+            "ctrl-shift-l": "pane::ActivateNextItem",
+            "ctrl-shift-h": "pane::ActivatePreviousItem"
+        }
+    },
+    {
+        "context": "(Editor && edit_prediction_conflict)",
+        "bindings": {
+            "alt-s": "editor::AcceptEditPrediction"
+        }
+    }
+]
