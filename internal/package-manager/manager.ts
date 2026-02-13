@@ -240,16 +240,19 @@ export class AptManager extends BasePackageManager {
     const tmpKeyring = join(tmp, `${name}.gpg`);
     const tmpSources = join(tmp, `${name}.sources`);
 
-    await Promise.all([Bun.write(tmpKeyring, keyringResp), Bun.write(tmpSources, sourcesResp)]);
+    try {
+      await Promise.all([Bun.write(tmpKeyring, keyringResp), Bun.write(tmpSources, sourcesResp)]);
 
-    // we copy the files to their appropriate directories. Use install becaause it also allow to set the mode.
-    const [keyResult, sourcesResult] = await Promise.all([
-      this.execute(["install", "-Dm644", tmpKeyring, keyringPath]),
-      this.execute(["install", "-Dm644", tmpSources, sourcesPath]),
-    ]);
-
-    // Best effort to cleand behidn ourselves, but if it fails we don't really care. Is tmp it will go away eventuallly.
-    markAsErrorHandled(rm(tmp, { recursive: true, force: true }));
+      // we copy the files to their appropriate directories. Use install becaause it also allow to set the mode.
+      const [keyResult, sourcesResult] = await Promise.all([
+        this.execute(["install", "-Dm644", tmpKeyring, keyringPath]),
+        this.execute(["install", "-Dm644", tmpSources, sourcesPath]),
+      ]);
+    } finally {
+      // Best effort to cleand behidn ourselves, but if it fails we don't really care. Is tmp it will go away eventuallly.
+      markAsErrorHandled(rm(tmpKeyring, { force: true }));
+      markAsErrorHandled(rm(tmpSources, { force: true }));
+    }
 
     // Force a refresh on the next install so the new repo is picked up
     this.hasRerefreshed = false;
