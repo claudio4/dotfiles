@@ -86,25 +86,32 @@ export async function downloadFile(
     throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
   }
 
-  if (hash) {
-    const hasher = new Bun.CryptoHasher("sha256");
-    const writer = destFile.writer();
+  const writer = destFile.writer();
+  try {
+    if (hash) {
+      const hasher = new Bun.CryptoHasher("sha256");
 
-    for await (const chunk of response.body!) {
-      hasher.update(chunk);
-      writer.write(chunk);
+      for await (const chunk of response.body!) {
+        hasher.update(chunk);
+        writer.write(chunk);
+      }
+
+      const downloadedHash = hasher.digest("hex");
+      const expected = normalizeHash(hash);
+
+      if (downloadedHash !== expected) {
+        // prevent leavign behind a undesired file
+        markAsErrorHandled(destFile.delete());
+        throw new Error(`Hash mismatch for ${url}: expected ${expected}, got ${downloadedHash}`);
+      }
+    } else {
+      // for some reason this is way faster than destfile.Write(response)
+      for await (const chunk of response.body!) {
+        writer.write(chunk);
+      }
     }
-
-    const downloadedHash = hasher.digest("hex");
-    const expected = normalizeHash(hash);
-
-    if (downloadedHash !== expected) {
-      // prevent leavign behind a undesired file
-      markAsErrorHandled(destFile.delete());
-      throw new Error(`Hash mismatch for ${url}: expected ${expected}, got ${downloadedHash}`);
-    }
-  } else {
-    await destFile.write(response);
+  } finally {
+    await writer.end();
   }
 
   result.changed = true;
