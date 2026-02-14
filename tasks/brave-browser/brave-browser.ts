@@ -1,5 +1,5 @@
 import { commandExists, spawn } from "internal/cmd";
-import { copy } from "internal/fs";
+import { copy, mkdir } from "internal/fs";
 import {
   addRepositoryToSystemPackageManager,
   installWithSystemPackageManager,
@@ -32,9 +32,15 @@ class BraveBrowserTask extends BaseTask {
 
     if (isLinux) {
       this.setMessage("Copy policies");
+      const policiesDir = "/etc/brave/policies/managed/";
+      await mkdir(policiesDir, { sudo: true, owner: "0:0" });
       await copy(
         join(import.meta.dir, "brave-debloat-policies.json"),
-        "/etc/brave/policies/managed/brave-debloat-policies.json",
+        join(policiesDir, "brave-debloat-policies.json"),
+        {
+          sudo: true,
+          owner: "0:0",
+        },
       );
     } else if (isWindows) {
       this.setMessage("Apply policies");
