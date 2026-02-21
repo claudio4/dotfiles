@@ -21,6 +21,7 @@ if set --query GOPATH
 end
 
 {%! } %}
-if [ -d "$HOME/.local/bin" ]
+
+if test -d "$HOME/.local/bin"
     fish_add_path --global --path $HOME/.local/bin
 end
