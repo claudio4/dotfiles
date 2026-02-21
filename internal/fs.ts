@@ -338,11 +338,11 @@ export async function ensureLine(
     throw new Error(`search pattern is required when position is "${position}"`);
   }
 
-  const fileExists = await exists(path);
+  const file = Bun.file(path);
 
-  if (!fileExists) {
+  if (!(await file.exists())) {
     const lineEnding = process.platform === "win32" ? "\r\n" : "\n";
-    await writeFile(path, line + lineEnding, "utf-8");
+    await file.write(line + lineEnding);
 
     result.created = true;
     result.added = true;
@@ -350,12 +350,13 @@ export async function ensureLine(
     return result;
   }
 
-  // Read file content
-  const content = await readFile(path, "utf-8");
+  const content = await file.text();
   const lineEnding = detectLineEnding(content);
   const lines = content.split(/\r?\n/);
+  const inputLines = line.split(/\r?\n/);
 
-  if (lines.includes(line)) {
+  // check if lines were already present
+  if (containsConsecutiveSequence(lines, inputLines)) {
     return result;
   }
 
@@ -391,12 +392,31 @@ export async function ensureLine(
     newContent += lineEnding;
   }
 
-  await writeFile(path, newContent, "utf-8");
+  await file.write(newContent);
 
   result.added = true;
   result.changed = true;
 
   return result;
+}
+
+/**
+ * Check if `haystack` contains `needle` as a consecutive subsequence.
+ * Used to determine if a set of lines already exists in a file.
+ */
+function containsConsecutiveSequence(haystack: string[], needle: string[]): boolean {
+  if (needle.length === 0) return true;
+  if (needle.length > haystack.length) return false;
+
+  outer: for (let i = 0; i <= haystack.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (haystack[i + j] !== needle[j]) {
+        continue outer;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 /**
