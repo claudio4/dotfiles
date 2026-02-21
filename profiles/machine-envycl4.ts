@@ -25,6 +25,9 @@ const profile = new Profile({
 //  some  homebrew packages.
 homebrew.options.shouldOverride = (await getDistroFamily()) !== "arch";
 
+// We use fish instead
+zsh.options.setDefaultShell = false;
+
 profile.addTask(
   git,
   homebrew,
