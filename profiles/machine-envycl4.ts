@@ -12,6 +12,7 @@ import modernUtils from "tasks/modern-utils/modern-utils";
 import neovim from "tasks/neovim/neovim";
 import rust from "tasks/rust/rust";
 import tmux from "tasks/tmux/tmux";
+import usefulDirs from "tasks/useful-dirs/useful-dirs";
 import wsl from "tasks/wsl/wsl";
 import zed from "tasks/zed/zed";
 import zsh from "tasks/zsh/zsh";
@@ -28,6 +29,8 @@ homebrew.options.shouldOverride = (await getDistroFamily()) !== "arch";
 // We use fish instead
 zsh.options.setDefaultShell = false;
 
+usefulDirs.options.isDesktop = true;
+
 profile.addTask(
   git,
   homebrew,
@@ -42,6 +45,7 @@ profile.addTask(
   tmux,
   zsh,
   braveBrowser,
+  usefulDirs,
 );
 
 export default profile;

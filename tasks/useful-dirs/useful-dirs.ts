@@ -6,17 +6,19 @@ import { join } from "node:path";
 
 class UsefulDirsTask extends BaseTask {
   override id = "useful-dirs";
+  options = {
+    /** Whether this is a desktop install. When true, dev and scratchpad are created under ~/Documents */
+    isDesktop: isWindows,
+  };
+
   override async _execute(): Promise<void> {
     this.setMessage("Create useful dirs");
-    const promises = [];
-    if (isWindows()) {
-      promises.push(mkdir(join(getHome(), "Documents", "dev")));
-    } else {
-      promises.push(
-        mkdir(join(getHome(), "dev", "claudio4")),
-        mkdir(join(getHome(), "scratchpad")),
-        mkdir(join(getHome(), ".local", "bin")),
-      );
+    const home = getHome();
+    const base = this.options.isDesktop ? join(home, "Documents") : home;
+    const promises = [mkdir(join(base, "dev", "claudio4")), mkdir(join(base, "scratchpad"))];
+
+    if (!isWindows) {
+      promises.push(mkdir(join(home, ".local", "bin")));
     }
 
     await Promise.all(promises);
