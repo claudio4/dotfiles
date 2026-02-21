@@ -46,7 +46,7 @@ class ZedTask extends BaseTask {
 
   private async installLinux(): Promise<void> {
     const home = getHome();
-    const installDir = join(home, ".local", "opt", "zed");
+    const installDir = join(home, ".local", "zed.app");
     const binDir = join(home, ".local", "bin");
 
     const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
