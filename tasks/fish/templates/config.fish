@@ -8,6 +8,7 @@ bind --mode insert ctrl-delete kill-bigword
 # Set prompt colors
 set -g hydro_color_pwd brblue
 set -g hydro_color_prompt brgreen
+set fish_greeting
 
 # Sets default editor
 set -gx EDITOR {% $.nvim ? "nvim" : "vim" %}

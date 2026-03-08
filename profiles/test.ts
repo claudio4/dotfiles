@@ -1,11 +1,10 @@
 import { Profile } from "internal/profile";
-import go from "tasks/go/go";
-import usefulDirs from "tasks/useful-dirs/useful-dirs";
+import fish from "tasks/fish/fish";
 
 const profile = new Profile({
   name: "Test Profile",
 });
 
-profile.addTask(go, usefulDirs);
+profile.addTask(fish);
 
 export default profile;
