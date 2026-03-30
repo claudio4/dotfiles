@@ -74,7 +74,7 @@ class ZedTask extends BaseTask {
     const applicationsDir = join(home, ".local", "share", "applications");
     await mkdir(applicationsDir);
 
-    const desktopSource = join(installDir, "share", "applications", "zed.desktop");
+    const desktopSource = join(installDir, "share", "applications", "dev.zed.Zed.desktop");
     const desktopDest = join(applicationsDir, "dev.zed.Zed.desktop");
 
     const desktopContent = await Bun.file(desktopSource).text();
