@@ -25,7 +25,7 @@ class BraveBrowserTask extends BaseTask {
     const dashChannel = channel === "release" ? "" : `-${channel}`;
 
     let installPromise;
-    if (commandExists(`brave-browser${dashChannel}`) || commandExists(`brave${dashChannel}`)) {
+    if (!commandExists(`brave-browser${dashChannel}`) && !commandExists(`brave${dashChannel}`)) {
       installPromise = this.install(channel, dashChannel);
       markAsErrorHandled(installPromise);
     }
